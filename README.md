@@ -14,19 +14,19 @@ TrafoDNA is a MATLAB-only numerical feasibility study for transformer-core ident
 
 The unchanged V1 baseline is preserved on `main`. The default-seed run reported:
 
-| Metric | V1 result | V2.0 result | V2 engineering target |
-|---|---:|---:|---:|
-| Known-condition identity accuracy | 35.16% | 51.41% | at least 50% |
-| Unseen-condition identity accuracy | 33.38% | 42.75% | at least 45% |
-| Unseen-condition EER | 0.3542 | 0.3297 | at most 0.30 |
-| PUF reliability | 0.6952 | 0.7204 | at least 0.80 |
-| PUF uniqueness | 0.5263 | 0.5263 | 0.35 to 0.65 |
-| Selected stable bits | 8 | 48 | at least 16 |
-| Health classification accuracy | 67.43% | 77.36% | at least 65% |
+| Metric | V1 | V2.0 | V2.1 | Engineering target |
+|---|---:|---:|---:|---:|
+| Known-condition identity accuracy | 35.16% | 51.41% | 51.41% | at least 50% |
+| Development-holdout identity accuracy | 33.38% | 42.75% | 42.88% | at least 45% |
+| Development-holdout EER | 0.3542 | 0.3297 | 0.3332 | at most 0.30 |
+| PUF reliability | 0.6952 | 0.7204 | 0.7598 | at least 0.80 |
+| PUF uniqueness | 0.5263 | 0.5263 | 0.5263 | 0.35 to 0.65 |
+| Selected stable bits | 8 | 48 | 16 | at least 16 |
+| Health classification accuracy | 67.43% | 77.36% | 77.36% | at least 65% |
 
-V2.0 passed four of seven gates. V2.1 focuses on the remaining unseen-condition and PUF-reliability gaps. These targets remain engineering criteria, not experimental claims. The V1 label “validation EER” was misleading: the printed value was taken from the unseen-condition metrics. V2 prints validation and unseen-condition EER separately.
+V2.1 still passed four of seven single-read gates. It improved PUF reliability and corrected the forced 48-bit response, while identity generalization remained effectively unchanged. Conditions 9–10 have now been observed repeatedly and are frozen as a development holdout. V2.2 preregisters untouched conditions 11–12 as the final holdout before their results are inspected. These targets remain engineering criteria, not experimental claims.
 
-## What V2.1 changes
+## What V2.2 adds
 
 - Adds 12-bin phase-synchronous event and energy descriptors so the fixed microstructural phase pattern is not collapsed into two half-cycle values.
 - Removes measurable temperature, excitation, noise, and sensor-gain effects with a ridge model fitted only on enrollment data.
@@ -37,6 +37,9 @@ V2.0 passed four of seven gates. V2.1 focuses on the remaining unseen-condition 
 - Builds PUF candidates from unary identity coordinates and pairwise coordinate differences.
 - Screens bits using enrollment reliability, validation reliability, worst-known-condition reliability, population balance, threshold margin, and reference correlation.
 - Stops at the stable candidate count instead of always filling the response to its configured maximum.
+- Preserves every single-read result and adds a separate three-read session decision based on median features or median continuous PUF responses.
+- Freezes conditions 9–10 as development evidence and adds conditions 11–12 as an untouched final holdout.
+- Applies seven preregistered final-holdout checks without using those observations for fitting or tuning.
 - Applies supervised feature filtering before residual health PCA.
 - Writes a benchmark CSV that compares every new run with V1 and the V2 targets.
 - Adds algorithmic regression tests in addition to structural checks.
@@ -59,7 +62,7 @@ addpath(genpath(pwd));
 results = main();
 ```
 
-The default study generates 20 virtual cores, 10 operating conditions, 20 repetitions per condition, and 4,000 feature records. Raw waveforms are streamed: only a small configured subset is retained for plotting.
+The default study generates 20 virtual cores, 12 operating conditions, 20 repetitions per condition, and 4,800 feature records. Conditions 1–8 are known, 9–10 are the frozen development holdout, and 11–12 are the preregistered final holdout. Raw waveforms are streamed: only a small configured subset is retained for plotting.
 
 The summary reports actual computed values, the selected identity-model settings, and the number of V2 acceptance gates passed.
 
@@ -75,9 +78,12 @@ cfg.dataset.trainRepeats = 1:3;
 cfg.dataset.validationRepeats = 4;
 cfg.dataset.testRepeats = 5;
 cfg.dataset.unseenConditionIds = 5;
+cfg.dataset.finalHoldoutConditionIds = [];
+cfg.session.readsPerDecision = 1;
 cfg.dataset.conditions = cfg.dataset.conditions(1:5);
 for k = 1:numel(cfg.dataset.conditions)
     cfg.dataset.conditions(k).isUnseen = (k == 5);
+    cfg.dataset.conditions(k).isFinalHoldout = false;
 end
 results = main(cfg);
 ```
@@ -108,6 +114,7 @@ The suite checks:
 - the identity-transform contract and exclusion of health variables;
 - synthetic extrapolation across an unseen removable condition shift.
 - leave-one-condition-out tuning and nuisance-subspace integrity.
+- exact three-read session formation and final-holdout execution paths.
 
 Passing these tests establishes implementation invariants. It does not replace the full benchmark or experimental validation.
 
@@ -118,15 +125,16 @@ Passing these tests establishes implementation invariants. It does not replace t
 3. `generateExcitation` generates sinusoidal, triangular, or trapezoidal `H(t)`.
 4. `simulateBarkhausen` generates phase-coupled avalanche events and pickup voltage.
 5. `extractFeatures` computes time, event, spectrum, phase, and Haar descriptors.
-6. `splitDataset` holds out repeat groups and entire operating conditions.
+6. `splitDataset` separates repeat groups, the development holdout, and the untouched final holdout.
 7. `tuneIdentityModel` selects a condition-robust centroid model on validation data.
 8. `generateBinaryFingerprint` enrolls decorrelated stable differential bits.
 9. `separateIdentityAndHealth` removes core centroids and learns health coordinates.
-10. Evaluation produces metrics, benchmark gates, CSV/MAT outputs, and 16 figures.
+10. Evaluation preserves single-read metrics, adds three-read session metrics, and produces benchmark/final-holdout gates, CSV/MAT outputs, and 16 figures.
 
 ## Leakage controls
 
-- Conditions 9 and 10 are absent from enrollment and validation.
+- Conditions 9 and 10 are absent from enrollment and validation and are now treated as observed development evidence.
+- Conditions 11 and 12 were defined before their first run and are excluded from every fit, tuning decision, and PUF selection step.
 - Repetitions 1–12 train, 13–16 validate, and 17–20 test for known conditions.
 - Standardization, nuisance regression, Fisher ranking, centroids, covariance, and PUF thresholds are fitted on enrollment data only.
 - Feature count, covariance regularization, nuisance-subspace size, and PUF bit stability use validation labels.
@@ -142,6 +150,7 @@ Passing these tests establishes implementation invariants. It does not replace t
 - `trafodna_features.csv`
 - `identity_accuracy_by_health.csv`
 - `benchmark_comparison.csv`
+- `final_holdout_checks.csv`
 - `figures/01_excitation_field.png` through `figures/16_identity_accuracy_by_health.png`
 
 Generated data and figures are ignored by Git; `results/README.md` remains tracked.
@@ -177,6 +186,7 @@ TrafoDNA/
 5. Operating metadata used by the V2 normalizer must be measured or supplied at inference time.
 6. PUF-style metrics do not constitute a cryptographic security proof.
 7. The reported V1 values came from one deterministic default configuration and should not be generalized beyond it.
+8. A three-read decision requires three independent acquisitions and must always be reported separately from single-read performance.
 
 See [MODEL.md](MODEL.md) for equations and [docs/BASELINE_ANALYSIS.md](docs/BASELINE_ANALYSIS.md) for the V1 diagnosis and V2 rationale.
 

@@ -21,6 +21,7 @@ stressPa = zeros(numSamples,1);
 agingLevel = zeros(numSamples,1);
 healthState = cell(numSamples,1);
 isUnseenCondition = false(numSamples,1);
+isFinalHoldoutCondition = false(numSamples,1);
 sampleSeed = zeros(numSamples,1);
 
 rawTemplate = struct('coreId',0,'conditionId',0,'repeatId',0,'t',[], ...
@@ -66,6 +67,7 @@ for coreIndex = 1:numCores
             agingLevel(index) = condition.agingLevel;
             healthState{index} = condition.healthState;
             isUnseenCondition(index) = condition.isUnseen;
+            isFinalHoldoutCondition(index) = condition.isFinalHoldout;
             sampleSeed(index) = seed;
 
             if conditionIndex == 1 && repetition <= cfg.dataset.rawExamplesPerCore
@@ -94,10 +96,12 @@ end
 
 metadata = table(sampleId, coreIdColumn, conditionIdColumn, repeatIdColumn, ...
     temperatureK, excitationAmplitudeAm, excitationFrequencyHz, noiseStdV, ...
-    sensorGain, stressPa, agingLevel, healthState, isUnseenCondition, sampleSeed, ...
+    sensorGain, stressPa, agingLevel, healthState, isUnseenCondition, ...
+    isFinalHoldoutCondition, sampleSeed, ...
     'VariableNames', {'SampleId','CoreId','ConditionId','RepeatId','TemperatureK', ...
     'ExcitationAmplitudeAm','ExcitationFrequencyHz','NoiseStdV','SensorGain', ...
-    'StressPa','AgingLevel','HealthState','IsUnseenCondition','SampleSeed'});
+    'StressPa','AgingLevel','HealthState','IsUnseenCondition', ...
+    'IsFinalHoldoutCondition','SampleSeed'});
 
 dataset.features = features;
 dataset.featureNames = featureNames;

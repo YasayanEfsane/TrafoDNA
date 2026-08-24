@@ -197,13 +197,22 @@ Training health labels provide a Fisher ranking that removes residual dimensions
 
 ## 13. Split and leakage policy
 
-- Conditions 9 and 10 are completely held out.
+- Conditions 9 and 10 are excluded from fitting and retained as the observed development holdout.
+- Conditions 11 and 12 are preregistered final holdouts and remain excluded from fitting, validation, and PUF bit selection.
 - Known-condition repetitions 1–12 train, 13–16 validate, and 17–20 test.
 - A sample belongs to at most one partition.
 - Standardization, nuisance regression, feature ranking, centroids, covariance, and PUF enrollment use training data only.
 - Validation selects two identity hyperparameters.
 - Test and unseen labels are evaluation-only.
 
-## 14. Validity boundary
+## 14. Multi-read session protocol
+
+Single-read performance remains the primary diagnostic. V2.2 additionally defines a three-read operational decision before inspecting the final holdout. Consecutive measurements from one presented core under one condition form a session; incomplete trailing groups are excluded and counted.
+
+Identity sessions take the feature-wise median of the three reads and apply the unchanged fitted identity transform. PUF sessions take the median of each continuous selected response before applying the enrollment threshold. No vote uses the true core label. `CoreId` is used only to reconstruct which simulated acquisitions belong to the same presented device and to score the final decision.
+
+The three-read metrics are supplementary and never overwrite single-read accuracy, EER, or reliability.
+
+## 15. Validity boundary
 
 The model does not solve real grain geometry, domain-wall topology, lamination coupling, spatial flux, coil placement, calibrated material coefficients, or metallurgical ageing chemistry. It is an algorithm and experiment-design study. Physical claims require independently manufactured cores, calibrated acquisition hardware, controlled nuisance variables, preregistered splits, uncertainty intervals, and replication.
