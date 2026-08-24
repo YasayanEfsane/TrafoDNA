@@ -38,7 +38,7 @@ V3 preserves the complete passive result and adds a separate active magnetic cha
 
 The V3 random seed, 18 independent scenarios, final scenarios 115–118, representation, and ten final gates were frozen in [docs/V3_PREREGISTRATION.md](docs/V3_PREREGISTRATION.md) and commit `a0506152845b6fc22af1785b22e5a68b90e7462f` before the first final run.
 
-That first run passed **9 of 10** gates. Final identity accuracy was 100.00%, identity EER was 0.0038743, raw PUF reliability was 0.93953, uniqueness was 0.52632, worst-scenario reliability was 0.91987, and three-sweep PUF reliability was 0.95048. The only failed gate was response length: 26 strictly eligible raw bits were retained against a target of 32. The preregistered all-gates decision is therefore **NOT SUPPORTED**. Scenarios 115–118 are now observed and frozen. See [docs/V3_FINAL_RESULTS.md](docs/V3_FINAL_RESULTS.md) for the complete locked record.
+That first run passed **9 of 10** gates. Final identity accuracy was 100.00%, identity EER was 0.0038743, raw PUF reliability was 0.93953, uniqueness was 0.52632, worst-scenario reliability was 0.91987, and three-sweep PUF reliability was 0.95048. The only failed gate was response length: 179 candidates passed the stability-and-balance eligibility screen, but the fixed greedy correlation pruning retained only 26 mutually admissible raw bits against a target of 32. The preregistered all-gates decision is therefore **NOT SUPPORTED**. Scenarios 115–118 are now observed and frozen. See [docs/V3_FINAL_RESULTS.md](docs/V3_FINAL_RESULTS.md) for the complete locked record.
 
 ## What V2.2 adds
 

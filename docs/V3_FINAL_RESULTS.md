@@ -20,6 +20,7 @@ Scenarios 115–118 are now observed. They cannot be used for fitting, threshold
 | Three-sweep development PUF reliability | 0.9525 |
 | Selected active identity features | 72 |
 | Selected raw fingerprint bits | 26 |
+| Eligible candidates before correlation pruning | 179 |
 | Strictly eligible raw fingerprint bits | 26 |
 | Fallback fingerprint bits | 0 |
 
@@ -59,10 +60,12 @@ These comparisons are engineering contrasts between two numerical protocols, not
 
 Within this reduced virtual model, active differential challenge responses solved the identity-separation and verification problem decisively. The final identity accuracy and EER substantially exceeded their preregistered targets, and PUF reliability, uniqueness, worst-scenario reliability, and three-sweep reliability also passed.
 
-The remaining failure is response capacity under the strict raw-bit definition. Only 26 strictly eligible bits were retained after stability, balance, and cross-bit-redundancy screening; the protocol required 32. The summary alone does not show whether the limiting step was candidate eligibility or correlation pruning. The six-bit deficit must not be hidden by relaxing the target, increasing the allowed correlation, or enabling fallback after observing the result.
+The remaining failure is response capacity under the strict raw-bit definition. The post-run capacity diagnostic shows that 179 candidates passed the enrollment, validation, worst-condition, and population-balance eligibility screen. The fixed score-ordered greedy selector retained only 26 after applying the absolute cross-bit-correlation limit of 0.80; the protocol required 32. The bottleneck is therefore correlation pruning under the current selection rule, not a shortage of stable and balanced candidates. However, the count of 179 does not prove that a mutually admissible 32-bit subset exists because the greedy result can depend on ordering and the maximum independent-set size has not been established.
+
+The six-bit deficit must not be hidden by relaxing the target, increasing the allowed correlation, or enabling fallback after observing the result.
 
 The result therefore supports the narrower numerical claim that active challenge responses are far more separable and stable than the passive V2.2 representation. It does not support the complete preregistered V3 hypothesis, a 32-bit raw response claim, physical-core performance, or cryptographic security.
 
 ## Locked next-step boundary
 
-Future V3.1 development may inspect the V3 models and scenarios 109–118, but it must introduce new development and final scenarios before making another unbiased claim. The first diagnostic is to distinguish a shortage of strictly eligible candidates from rejection by the cross-bit-correlation filter. Any new bit construction, challenge design, population size, or decorrelation method must be selected without evaluating the next final holdout.
+Future V3.1 development may inspect the V3 models and scenarios 109–118, but it must introduce new development and final scenarios before making another unbiased claim. The first development task is to measure the correlation graph of the 179 eligible candidates and compare the frozen score-ordered greedy result with deterministic degree-aware and multistart independent-set heuristics. Any new selector, bit construction, challenge design, population size, or decorrelation method must be selected without evaluating the next final holdout.
