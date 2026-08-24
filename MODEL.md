@@ -15,20 +15,20 @@ The model separates four levels:
 
 The applied field is
 
-\[
+$$
 H(t)=H_0+H_a w(2\pi f t),
-\]
+$$
 
-where `w` is a sinusoidal, triangular, or trapezoidal unit waveform. Each condition scales `H_a` and `f`. MATLAB `gradient` computes the numerical field derivative using the sampling interval.
+where $w$ is a sinusoidal, triangular, or trapezoidal unit waveform. Each condition scales $H_a$ and $f$. MATLAB `gradient` computes the numerical field derivative using the sampling interval.
 
 ## 3. Latent core identity
 
 Each core receives one fixed parameter set:
 
-\[
+$$
 \Theta_i=\{H_{c,i},\rho_{p,i},c_i,D_i,\lambda_{0,i},\tau_i,A_i,s_i,
 \mathbf{a}_i,\boldsymbol\phi_i\}.
-\]
+$$
 
 The terms denote coercivity, relative pinning density, interaction coefficient, disorder, base avalanche rate, activity time constant, pickup-pulse amplitude, spectral shift, and fixed phase-modulation coefficients. Bounded normal distributions generate these values. `coreId` and the central random seed make the identity reproducible.
 
@@ -36,11 +36,11 @@ The terms denote coercivity, relative pinning density, interaction coefficient, 
 
 The phenomenological factors are
 
-\[
+$$
 F_T=1+k_T(T-T_0), \qquad
 F_\sigma=1+k_\sigma |\sigma|, \qquad
 F_a=1+k_a a.
-\]
+$$
 
 They modify effective coercivity, pinning density, disorder, avalanche rate, time constant, and pulse amplitude. These relationships are numerical assumptions and must not be interpreted as calibration to a specific electrical-steel grade.
 
@@ -48,64 +48,64 @@ They modify effective coercivity, pinning density, disorder, avalanche rate, tim
 
 The model reduces the driven-domain-wall idea of ABBM to an event-intensity process:
 
-\[
+$$
 \lambda(t)=\lambda_{\mathrm{eff}}
 \left(0.05+\left|\frac{\dot H(t)}{\dot H_{\max}}\right|^{0.72}\right)
 \left(0.10+W_c(t)\right)F_i(\varphi(t)),
-\]
+$$
 
 with coercive window
 
-\[
+$$
 W_c(t)=\exp\left[-\frac{1}{2}
 \left(\frac{|H(t)|-H_{c,\mathrm{eff}}}{\sigma_c}\right)^2\right].
-\]
+$$
 
 The fixed core-specific phase modulation is
 
-\[
+$$
 F_i(\varphi)=\max\left(0.15,
 1+\sum_{m=1}^{8}a_{i,m}\cos(m\varphi+\phi_{i,m})\right).
-\]
+$$
 
 The primary event probability in one sample interval is
 
-\[
+$$
 p_k=\min(\lambda(t_k)\Delta t,0.30).
-\]
+$$
 
 ## 6. Avalanche clustering and amplitude
 
 A decaying activity state creates short-range event correlation:
 
-\[
+$$
 q_k=e^{-\Delta t/\tau}q_{k-1}+r_k.
-\]
+$$
 
-The secondary-event probability increases with `q_k` and the interaction coefficient. Event amplitudes are log-normal:
+The secondary-event probability increases with $q_k$ and the interaction coefficient. Event amplitudes are log-normal:
 
-\[
+$$
 A_k=A_{\mathrm{eff}}\exp(D_{\mathrm{eff}}\xi_k)
 \left(0.25+0.75\frac{|\dot H_k|}{|\dot H|_{\max}}\right)(1+0.30q_k).
-\]
+$$
 
-The sign follows the direction of `dH/dt`. This is an ABBM-inspired discrete process, not the complete ABBM stochastic differential equation.
+The sign follows the direction of $\mathrm{d}H/\mathrm{d}t$. This is an ABBM-inspired discrete process, not the complete ABBM stochastic differential equation.
 
 ## 7. Pickup and measurement model
 
 Each event excites a damped sinusoidal response:
 
-\[
+$$
 g(t)=e^{-t/\tau_s}\sin(2\pi f_s t), \qquad t\geq0.
-\]
+$$
 
-The event train is convolved with `g(t)` and passed through an FFT-domain band-pass with cosine transitions. The measured voltage is
+The event train is convolved with $g(t)$ and passed through an FFT-domain band-pass with cosine transitions. The measured voltage is
 
-\[
+$$
 v_m(t)=G_s v_{\mathrm{clean}}(t)+\sigma_n n_c(t),
-\]
+$$
 
-where `n_c(t)` is normalized first-order colored noise.
+where $n_c(t)$ is normalized first-order colored noise.
 
 ## 8. Feature representation
 
@@ -119,55 +119,56 @@ TrafoDNA stores features rather than every waveform. V2 includes:
 - envelope width in seconds and excitation cycles;
 - four Haar detail energies and one approximation energy.
 
-The phase bins expose the fixed `F_i(φ)` structure that V1 largely discarded. Event detection uses a median-absolute-deviation noise estimate:
+The phase bins expose the fixed $F_i(\varphi)$ structure that V1 largely discarded. Event detection uses a median-absolute-deviation noise estimate:
 
-\[
+$$
 \hat\sigma=\frac{\operatorname{median}(|x-\operatorname{median}(x)|)}{0.67449}.
-\]
+$$
 
 ## 9. Condition-robust identity transform
 
-Raw features are standardized with enrollment statistics only. Let `z` be a standardized feature row and `u` the standardized measurable-condition vector containing temperature, excitation amplitude, excitation frequency, noise standard deviation, and sensor gain. The ridge nuisance model is
+Raw features are standardized with enrollment statistics only. Let $z$ be a standardized feature row and $u$ the standardized measurable-condition vector containing temperature, excitation amplitude, excitation frequency, noise standard deviation, and sensor gain. The ridge nuisance model is
 
-\[
-\hat B=\arg\min_B \|Z-UB\|_F^2+\lambda\|B\|_F^2.
-\]
+$$
+\widehat B=\underset{B}{\operatorname{arg\,min}}
+\left(\lVert Z-UB\rVert_F^2+\lambda\lVert B\rVert_F^2\right).
+$$
 
 The residual identity representation is
 
-\[
-R=Z-U\hat B.
-\]
+$$
+R=Z-U\widehat B.
+$$
 
 Stress, ageing, health labels, and core identities are not predictors in this model. Query-time operating metadata is required when the normalizer is enabled.
 
-V2.1 additionally centers these residuals within each enrolled core and uses SVD to learn dominant within-core nuisance directions `V_q`. Identity features are projected onto their orthogonal complement:
+V2.1 additionally centers these residuals within each enrolled core and uses SVD to learn dominant within-core nuisance directions $V_q$. Identity features are projected onto their orthogonal complement:
 
-\[
+$$
 R_\perp=R(I-V_qV_q^T).
-\]
+$$
 
 This learns a shared condition-variation subspace without using stress or health labels. The projection is fixed after enrollment and therefore does not require query-time health metadata.
 
 For each residual dimension, a training-only Fisher score is computed:
 
-\[
+$$
 J_j=\frac{S_{B,j}}{S_{W,j}+\epsilon}.
-\]
+$$
 
 The highest-ranked dimensions are retained. Core centroids and a shared within-core covariance are then estimated. The regularized covariance is
 
-\[
+$$
 \Sigma_r=(1-\alpha)\Sigma_w+\alpha\bar\sigma^2I,
-\]
+$$
 
 and identity uses Mahalanobis distance
 
-\[
+$$
 d_i(x)=\sqrt{(x-\mu_i)^T\Sigma_r^{-1}(x-\mu_i)}.
-\]
+$$
 
-Feature count, `α`, and the number of removed nuisance components are selected with leave-one-condition-out validation. For each fold, one complete known condition is absent from enrollment and is evaluated using its validation repetitions. The objective combines mean condition accuracy, worst-condition accuracy, and mean EER. Test and deliberately unseen conditions are never used.
+Feature count, $\alpha$, and the number of removed nuisance components are selected with leave-one-condition-out validation. For each fold, one complete known condition is absent from enrollment and is evaluated using its validation repetitions. The objective combines mean condition accuracy, worst-condition accuracy, and mean EER. Test and deliberately unseen conditions are never used.
 
 ## 10. Verification metrics
 
@@ -175,7 +176,7 @@ The genuine score is the distance to the enrolled true-core centroid. Impostor s
 
 ## 11. Differential PUF-style fingerprint
 
-PUF enrollment operates in the fitted identity embedding. Candidate responses include each coordinate `r_j` and each difference `r_j-r_k`. Enrollment medians create all binary thresholds and core references. Candidate selection considers:
+PUF enrollment operates in the fitted identity embedding. Candidate responses include each coordinate $r_j$ and each difference $r_j-r_k$. Enrollment medians create all binary thresholds and core references. Candidate selection considers:
 
 - mean repeat reliability across enrolled cores;
 - validation-repeat reliability and worst-known-condition reliability;
@@ -189,9 +190,9 @@ Only candidates meeting the stability gates are selected up to the configured ma
 
 The standardized enrollment centroid of each core is subtracted:
 
-\[
+$$
 r_{ij}=z_{ij}-\mu_i.
-\]
+$$
 
 Training health labels provide a Fisher ranking that removes residual dimensions dominated by nonspecific noise. PCA/SVD is then applied to the selected residual matrix. The configured variance fraction, capped at eight components, defines the health coordinates. Regularized Mahalanobis distance to health-class centroids produces the prediction and health index.
 
@@ -215,33 +216,45 @@ The three-read metrics are supplementary and never overwrite single-read accurac
 
 ## 15. V3 persistent active pinning map
 
-V3 leaves the passive simulator unchanged and defines a separate compact active model. Core `i` receives 256 fixed virtual pinning sites
+V3 leaves the passive simulator unchanged and defines a separate compact active model. Core $i$ receives 256 fixed virtual pinning sites
 
-\[
+$$
 P_i=\{h_j,w_j,b_j,q_j,s_j,\eta_{T,j},\eta_{\sigma,j},\eta_{a,j}\}_{j=1}^{256},
-\]
+$$
 
-where `h` is the activation threshold, `w` is the event weight, `b` is the magnetisation branch, `q` is the rate exponent, `s` is the spectral tendency, and the three `η` terms describe site-level temperature, stress, and ageing sensitivity. This map is generated once from the core seed and is never redrawn between scenarios or challenges.
+where $h$ is the activation threshold, $w$ is the event weight, $b$ is the magnetisation branch, $q$ is the rate exponent, $s$ is the spectral tendency, and the three $\eta$ terms describe site-level temperature, stress, and ageing sensitivity. This map is generated once from the core seed and is never redrawn between scenarios or challenges.
 
-For scenario `e`, the effective threshold is
+For scenario $e$, define
 
-\[
-h_{i,j,e}^{*}=h_{i,j}(1+\eta_{T,j}\Delta T)
-(\text{stress and ageing factors})+b_jH_{\mathrm{reset}}.
-\]
+$$
+\begin{aligned}
+F_{T,j,e} &= 1+\eta_{T,j}\Delta T_e,\\
+F_{\sigma,j,e} &= 1+\eta_{\sigma,j}|\sigma_e|,\\
+F_{a,j,e} &= 1+\eta_{a,j}a_e.
+\end{aligned}
+$$
 
-For challenge `c`, field amplitude, frequency, waveform sweep factor, and a fixed site-waveform preference determine an activation probability. Sixteen Bernoulli activation cycles estimate the repeated site activity. The compact response contains activation, weighted count, energy, peak amplitude, threshold moments, spectral moments, branch balance, rate moment, and circular phase coordinates.
+The effective site threshold used by the implementation is
+
+$$
+h_{i,j,e}^{*}=\max\!\left(
+h_{i,j}F_{T,j,e}F_{\sigma,j,e}F_{a,j,e}
++b_jH_{\mathrm{reset},e},\ 1
+\right).
+$$
+
+For challenge $c$, field amplitude, frequency, waveform sweep factor, and a fixed site-waveform preference determine an activation probability. Sixteen Bernoulli activation cycles estimate the repeated site activity. The compact response contains activation, weighted count, energy, peak amplitude, threshold moments, spectral moments, branch balance, rate moment, and circular phase coordinates.
 
 The map makes core identity persistent while leaving activation and measurement stochastic. It is a reduced theoretical mechanism rather than a spatial domain-wall simulation.
 
 ## 16. V3 differential challenge representation
 
-The active challenge matrix is the Cartesian product of three waveforms, four field amplitudes, and two frequencies. Let `x_{i,e,r,c,k}` denote positive response coordinate `k` for core `i`, scenario `e`, repeated sweep `r`, and challenge `c`. Relative to reference challenge `c_0`, V3 forms
+The active challenge matrix is the Cartesian product of three waveforms, four field amplitudes, and two frequencies. Let $x_{i,e,r,c,k}$ denote positive response coordinate $k$ for core $i$, scenario $e$, repeated sweep $r$, and challenge $c$. Relative to reference challenge $c_0$, V3 forms
 
-\[
+$$
 d_{i,e,r,c,k}=\log(x_{i,e,r,c,k}+\epsilon)
 -\log(x_{i,e,r,c_0,k}+\epsilon).
-\]
+$$
 
 Signed phase coordinates use ordinary differences. The absolute transformed reference response is retained, giving 288 features per complete sweep. A common multiplicative sensor gain cancels from every log-difference coordinate.
 
