@@ -12,9 +12,9 @@ localEnsureDirectories(cfg);
 rng(cfg.rngSeed, 'twister');
 
 if cfg.runtime.verbose
-    fprintf('TrafoDNA baslatiliyor: %d nuve, %d kosul, %d tekrar.\n', ...
+    fprintf('Starting TrafoDNA: %d cores, %d conditions, %d repetitions.\n', ...
         cfg.dataset.numCores, cfg.dataset.numConditions, cfg.dataset.repetitions);
-    fprintf('MATLAB surumu: %s\n', version);
+    fprintf('MATLAB version: %s\n', version);
 end
 
 cores = repmat(createVirtualCore(1, cfg), cfg.dataset.numCores, 1);
@@ -25,21 +25,25 @@ end
 dataset = generateDataset(cores, cfg);
 splits = splitDataset(dataset.metadata, cfg);
 
-identityModel = trainIdentityModel(dataset.features(splits.train, :), ...
-    dataset.metadata.CoreId(splits.train), cfg);
+identityModel = tuneIdentityModel(dataset.features(splits.train, :), ...
+    dataset.metadata.CoreId(splits.train), dataset.metadata(splits.train,:), ...
+    dataset.features(splits.validation, :), ...
+    dataset.metadata.CoreId(splits.validation), ...
+    dataset.metadata(splits.validation,:), cfg);
 [validationPrediction, validationConfidence, validationDistances] = ...
-    predictIdentity(identityModel, dataset.features(splits.validation, :));
+    predictIdentity(identityModel, dataset.features(splits.validation, :), ...
+    dataset.metadata(splits.validation,:));
 validationMetrics = computeVerificationMetrics(validationPrediction, ...
     dataset.metadata.CoreId(splits.validation), validationConfidence, ...
     validationDistances, identityModel.coreIds);
 [testPrediction, testConfidence, testDistances] = predictIdentity(identityModel, ...
-    dataset.features(splits.test, :));
+    dataset.features(splits.test, :), dataset.metadata(splits.test,:));
 testMetrics = computeVerificationMetrics(testPrediction, ...
     dataset.metadata.CoreId(splits.test), testConfidence, testDistances, ...
     identityModel.coreIds);
 
 [unseenPrediction, unseenConfidence, unseenDistances] = predictIdentity(identityModel, ...
-    dataset.features(splits.unseen, :));
+    dataset.features(splits.unseen, :), dataset.metadata(splits.unseen,:));
 unseenMetrics = computeVerificationMetrics(unseenPrediction, ...
     dataset.metadata.CoreId(splits.unseen), unseenConfidence, unseenDistances, ...
     identityModel.coreIds);
@@ -47,9 +51,13 @@ testMetrics = localApplyCalibratedThreshold(testMetrics,validationMetrics.eerThr
 unseenMetrics = localApplyCalibratedThreshold(unseenMetrics,validationMetrics.eerThreshold);
 
 pufModel = generateBinaryFingerprint(dataset.features(splits.train, :), ...
-    dataset.metadata.CoreId(splits.train), cfg);
+    dataset.metadata.CoreId(splits.train), cfg, identityModel, ...
+    dataset.metadata(splits.train,:),dataset.features(splits.validation,:), ...
+    dataset.metadata.CoreId(splits.validation), ...
+    dataset.metadata(splits.validation,:));
 pufMetrics = evaluatePUF(pufModel, dataset.features(splits.test | splits.unseen, :), ...
-    dataset.metadata.CoreId(splits.test | splits.unseen));
+    dataset.metadata.CoreId(splits.test | splits.unseen), ...
+    dataset.metadata(splits.test | splits.unseen,:));
 
 [healthModel, trainHealthCoordinates] = separateIdentityAndHealth( ...
     dataset.features(splits.train, :), dataset.metadata.CoreId(splits.train), ...
@@ -61,10 +69,12 @@ pufMetrics = evaluatePUF(pufModel, dataset.features(splits.test | splits.unseen,
 
 healthEvaluationMask = splits.test | splits.unseen;
 [identityPredictionByHealth,~,~] = predictIdentity(identityModel, ...
-    dataset.features(healthEvaluationMask,:));
+    dataset.features(healthEvaluationMask,:), dataset.metadata(healthEvaluationMask,:));
 identityAccuracyByHealth = localAccuracyByHealth( ...
     dataset.metadata.HealthState(healthEvaluationMask), identityPredictionByHealth, ...
     dataset.metadata.CoreId(healthEvaluationMask));
+benchmark = compareAgainstBaseline(testMetrics, unseenMetrics, pufMetrics, ...
+    healthMetrics, cfg);
 
 analysisResults.cfg = cfg;
 analysisResults.cores = cores;
@@ -86,6 +96,7 @@ analysisResults.unseenPrediction = unseenPrediction;
 analysisResults.healthPrediction = healthPrediction;
 analysisResults.healthDistances = healthDistances;
 analysisResults.identityAccuracyByHealth = identityAccuracyByHealth;
+analysisResults.benchmark = benchmark;
 analysisResults.trainHealthCoordinates = trainHealthCoordinates;
 analysisResults.testHealthCoordinates = testHealthCoordinates;
 analysisResults.rawExamples = dataset.rawExamples;
@@ -105,9 +116,12 @@ if cfg.runtime.saveCsvFile
     writetable(outputTable, fullfile(cfg.runtime.resultsDirectory, 'trafodna_features.csv'));
     writetable(identityAccuracyByHealth, fullfile(cfg.runtime.resultsDirectory, ...
         'identity_accuracy_by_health.csv'));
+    writetable(benchmark, fullfile(cfg.runtime.resultsDirectory, ...
+        'benchmark_comparison.csv'));
 end
 
-localPrintSummary(testMetrics, unseenMetrics, pufMetrics, healthMetrics);
+localPrintSummary(validationMetrics, testMetrics, unseenMetrics, pufMetrics, ...
+    healthMetrics, benchmark, identityModel, cfg);
 end
 
 function resultTable = localAccuracyByHealth(healthLabels,predictedIds,trueIds)
@@ -138,15 +152,28 @@ if ~exist(cfg.runtime.figureDirectory, 'dir')
 end
 end
 
-function localPrintSummary(testMetrics, unseenMetrics, pufMetrics, healthMetrics)
-fprintf('\n--- TrafoDNA Sonuc Ozeti ---\n');
-fprintf('Bilinen kosul kimlik dogrulugu : %.2f %%\n', 100*testMetrics.accuracy);
-fprintf('Gorulmeyen kosul dogrulugu     : %.2f %%\n', 100*unseenMetrics.accuracy);
-fprintf('Dogrulama EER                  : %.4f\n', unseenMetrics.eer);
-fprintf('PUF guvenilirligi              : %.4f\n', pufMetrics.reliability);
-fprintf('PUF benzersizligi              : %.4f\n', pufMetrics.uniqueness);
-fprintf('Secilen kararlı bit            : %d\n', pufMetrics.numSelectedBits);
-fprintf('Saglik siniflandirma dogrulugu : %.2f %%\n', 100*healthMetrics.accuracy);
-fprintf('Sonuclar: %s\n', fileparts(mfilename('fullpath')));
-fprintf('Not: Sonuclar sayisal fizibilitedir; deneysel dogrulama degildir.\n');
+function localPrintSummary(validationMetrics, testMetrics, unseenMetrics, ...
+    pufMetrics, healthMetrics, benchmark, identityModel, cfg)
+fprintf('\n--- TrafoDNA Result Summary ---\n');
+fprintf('Known-condition identity accuracy : %.2f %%\n', 100*testMetrics.accuracy);
+fprintf('Unseen-condition identity accuracy: %.2f %%\n', 100*unseenMetrics.accuracy);
+fprintf('Validation EER                    : %.4f\n', validationMetrics.eer);
+fprintf('Unseen-condition EER              : %.4f\n', unseenMetrics.eer);
+fprintf('PUF reliability                   : %.4f\n', pufMetrics.reliability);
+fprintf('PUF validation reliability        : %.4f\n', ...
+    pufMetrics.meanValidationReliability);
+fprintf('PUF worst-condition reliability   : %.4f\n', ...
+    pufMetrics.meanWorstConditionReliability);
+fprintf('PUF uniqueness                    : %.4f\n', pufMetrics.uniqueness);
+fprintf('Selected stable bits              : %d\n', pufMetrics.numSelectedBits);
+fprintf('Health classification accuracy    : %.2f %%\n', 100*healthMetrics.accuracy);
+fprintf('Selected identity features        : %d\n', numel(identityModel.selectedFeatures));
+fprintf('Removed nuisance components       : %d\n', identityModel.nuisanceComponents);
+fprintf('Identity tuning strategy          : %s\n', identityModel.tuningStrategy);
+fprintf('Covariance regularization         : %.2f\n', ...
+    identityModel.covarianceRegularization);
+fprintf('V2 acceptance checks passed       : %d/%d\n', ...
+    sum(benchmark.Passed), height(benchmark));
+fprintf('Results directory                 : %s\n', cfg.runtime.resultsDirectory);
+fprintf('Note: Results are numerical feasibility evidence, not experimental validation.\n');
 end

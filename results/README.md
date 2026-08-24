@@ -1,3 +1,5 @@
-# Çalışma çıktıları
+# Generated results
 
-Bu klasör başlangıçta kasıtlı olarak boştur. `main` çalıştırıldığında özellik tablosu, MAT sonuç paketi, sağlık durumuna göre kimlik doğruluğu tablosu ve `figures/` altındaki görseller burada oluşturulur.
+This directory intentionally contains no generated data in source control. Running `main` can create the feature table, MAT result bundle, identity-by-health table, V1/V2 benchmark comparison, and numbered figures here.
+
+Generated `.mat`, `.csv`, and figure files are ignored by Git.

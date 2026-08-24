@@ -1,16 +1,18 @@
-function [predictedIds, confidence, distances] = predictIdentity(model, features)
+function [predictedIds, confidence, distances] = predictIdentity(model, features, metadata)
 %PREDICTIDENTITY Predict core identity and return verification distances.
 %   Lower DISTANCES indicate greater similarity. CONFIDENCE is the relative
 %   separation between the two nearest identities and lies in [0,1].
 
-normalized = standardizeFeatures(features, model.featureMean, ...
-    model.featureStd, model.activeFeatures);
-numSamples = size(normalized,1);
+if nargin < 3
+    metadata = [];
+end
+identityFeatures = transformIdentityFeatures(model, features, metadata);
+numSamples = size(identityFeatures,1);
 numCores = numel(model.coreIds);
 distances = zeros(numSamples, numCores);
 
 for coreIndex = 1:numCores
-    delta = normalized - model.centroids(coreIndex,:);
+    delta = identityFeatures - model.centroids(coreIndex,:);
     switch lower(model.method)
         case 'mahalanobis'
             distances(:,coreIndex) = sqrt(max(sum((delta*model.inverseCovariance).*delta,2),0));

@@ -1,219 +1,209 @@
-# TrafoDNA Sayısal Modeli
+# TrafoDNA Numerical Model
 
-## 1. Kapsam
+## 1. Scope
 
-TrafoDNA modeli, transformatör nüvesindeki Barkhausen etkinliğinin istatistiksel ve fiziksel olarak yorumlanabilir bir indirgenmiş temsilidir. Amaç tam mikromanyetik çözüm yapmak değil; uyarma, mikroyapı, çalışma koşulu ve gözlenen yüksek frekanslı pickup gerilimi arasında test edilebilir bir hesaplama zinciri kurmaktır.
+TrafoDNA is a statistically and physically interpretable reduced model of Barkhausen activity in transformer cores. Its purpose is not a full micromagnetic solution. It provides a testable computational chain from excitation and latent microstructure to a high-frequency pickup voltage, identity representation, binary fingerprint, and health representation.
 
-Model şu seviyeleri birbirinden ayırır:
+The model separates four levels:
 
-- **Sabit nüve parametreleri:** Sanal üretim kimliği.
-- **Çalışma koşulları:** Sıcaklık, uyarma, gürültü ve sensör kazancı.
-- **Sağlık değişkenleri:** Mekanik stres ve yaşlanma.
-- **Stokastik gerçekleşme:** Aynı nüvenin farklı ölçümlerindeki avalanche olayları.
+- **Fixed core parameters:** a virtual manufacturing identity.
+- **Operating conditions:** temperature, excitation, measurement noise, and sensor gain.
+- **Health variables:** mechanical stress and thermal ageing.
+- **Stochastic realization:** avalanche events that vary between repeated measurements.
 
-## 2. Uyarma alanı
+## 2. Excitation field
 
-Uyarma alanı
-
-\[
-H(t)=H_0+H_a w(2\pi f t)
-\]
-
-olarak tanımlanır. Burada `w`, sinüzoidal, üçgen veya trapezoidal birim dalga olabilir. Her çalışma koşulu `H_a` ve `f` için ayrı ölçek katsayıları taşır. Sayısal `dH/dt`, MATLAB `gradient` fonksiyonuyla örnekleme aralığına göre hesaplanır.
-
-## 3. Sanal nüve kimliği
-
-Her nüve için aşağıdaki sabit parametreler bir kez örneklenir:
+The applied field is
 
 \[
-\Theta_i=\{H_{c,i},\rho_{p,i},c_i,D_i,\lambda_{0,i},\tau_i,A_i,s_i,\mathbf{a}_i,\boldsymbol\phi_i\}.
+H(t)=H_0+H_a w(2\pi f t),
 \]
 
-Burada:
+where `w` is a sinusoidal, triangular, or trapezoidal unit waveform. Each condition scales `H_a` and `f`. MATLAB `gradient` computes the numerical field derivative using the sampling interval.
 
-- `Hc`: koersivite,
-- `rho_p`: bağıl pinning yoğunluğu,
-- `c`: domain etkileşim katsayısı,
-- `D`: mikroyapısal düzensizlik,
-- `lambda_0`: temel avalanche olay hızı,
-- `tau`: domain etkinliği sönüm zaman sabiti,
-- `A`: temel pickup darbe genliği,
-- `s`: spektral kayma,
-- `a` ve `phi`: manyetizasyon fazına bağlı sabit mikroyapısal modülasyon katsayılarıdır.
+## 3. Latent core identity
 
-Parametreler sınırlı normal dağılımlardan üretilir. `coreId` ve merkezi `rngSeed`, parametrelerin tekrar üretilebilir olmasını sağlar.
-
-## 4. Çalışma koşulunun parametrelere etkisi
-
-Sıcaklık, stres ve yaşlanma için boyutsuz çarpanlar:
+Each core receives one fixed parameter set:
 
 \[
-F_T=1+k_T(T-T_0),
+\Theta_i=\{H_{c,i},\rho_{p,i},c_i,D_i,\lambda_{0,i},\tau_i,A_i,s_i,
+\mathbf{a}_i,\boldsymbol\phi_i\}.
 \]
+
+The terms denote coercivity, relative pinning density, interaction coefficient, disorder, base avalanche rate, activity time constant, pickup-pulse amplitude, spectral shift, and fixed phase-modulation coefficients. Bounded normal distributions generate these values. `coreId` and the central random seed make the identity reproducible.
+
+## 4. Operating and health effects
+
+The phenomenological factors are
 
 \[
-F_\sigma=1+k_\sigma |\sigma|,
+F_T=1+k_T(T-T_0), \qquad
+F_\sigma=1+k_\sigma |\sigma|, \qquad
+F_a=1+k_a a.
 \]
 
-\[
-F_a=1+k_a a
-\]
+They modify effective coercivity, pinning density, disorder, avalanche rate, time constant, and pulse amplitude. These relationships are numerical assumptions and must not be interpreted as calibration to a specific electrical-steel grade.
 
-olarak kullanılır. Etkin koersivite, pinning yoğunluğu, disorder seviyesi, olay hızı, zaman sabiti ve darbe genliği bu çarpanlarla değiştirilir. Bu bağıntılar fenomenolojiktir; belirli bir çelik sınıfına ait deneysel kalibrasyon olarak yorumlanmamalıdır.
+## 5. ABBM-inspired event intensity
 
-## 5. ABBM-esinli olay yoğunluğu
-
-Model, ABBM yaklaşımındaki sürülen ve düzensiz pinning ortamında ilerleyen domain duvarı fikrini olay yoğunluğu düzeyine indirger. Her zaman örneğindeki temel avalanche yoğunluğu:
+The model reduces the driven-domain-wall idea of ABBM to an event-intensity process:
 
 \[
 \lambda(t)=\lambda_{\mathrm{eff}}
 \left(0.05+\left|\frac{\dot H(t)}{\dot H_{\max}}\right|^{0.72}\right)
-\left(0.10+W_c(t)\right)F_i(\varphi(t))
+\left(0.10+W_c(t)\right)F_i(\varphi(t)),
 \]
 
-şeklindedir. Koersivite penceresi:
+with coercive window
 
 \[
 W_c(t)=\exp\left[-\frac{1}{2}
-\left(\frac{|H(t)|-H_{c,\mathrm{eff}}}{\sigma_c}\right)^2\right]
+\left(\frac{|H(t)|-H_{c,\mathrm{eff}}}{\sigma_c}\right)^2\right].
 \]
 
-olup domain-wall aktivitesini `+/-Hc` çevresinde yoğunlaştırır. Böylece olaylar beyaz gürültü gibi zamandan bağımsız oluşmaz.
-
-Nüveye özgü faz modülasyonu:
+The fixed core-specific phase modulation is
 
 \[
 F_i(\varphi)=\max\left(0.15,
-1+\sum_{m=1}^{8}a_{i,m}\cos(m\varphi+\phi_{i,m})\right)
+1+\sum_{m=1}^{8}a_{i,m}\cos(m\varphi+\phi_{i,m})\right).
 \]
 
-olarak tanımlanır. `a` ve `phi` katsayıları aynı nüvenin bütün ölçümlerinde sabittir.
-
-Bir örnekleme aralığındaki birincil olay olasılığı:
+The primary event probability in one sample interval is
 
 \[
-p_k=\min(\lambda(t_k)\Delta t,0.30)
+p_k=\min(\lambda(t_k)\Delta t,0.30).
 \]
 
-olarak sınırlandırılır.
+## 6. Avalanche clustering and amplitude
 
-## 6. Avalanche dallanması
-
-Komşu olaylar arasında kısa süreli korelasyon oluşturmak için sönümlenen etkinlik durumu kullanılır:
+A decaying activity state creates short-range event correlation:
 
 \[
-q_k=e^{-\Delta t/\tau}q_{k-1}+r_k,
+q_k=e^{-\Delta t/\tau}q_{k-1}+r_k.
 \]
 
-burada `r_k`, gerçekleşen olayın normalize büyüklüğüdür. İkincil olay olasılığı `q_k` ve domain etkileşim katsayısıyla artırılır. Bu yapı tam ABBM stokastik diferansiyel denklemi değildir; avalanche kümelenmesini düşük hesaplama maliyetiyle temsil eden ABBM-esinli bir ayrık süreçtir.
-
-Olay genliği log-normal olarak oluşturulur:
+The secondary-event probability increases with `q_k` and the interaction coefficient. Event amplitudes are log-normal:
 
 \[
 A_k=A_{\mathrm{eff}}\exp(D_{\mathrm{eff}}\xi_k)
-\left(0.25+0.75\frac{|\dot H_k|}{|\dot H|_{\max}}\right)(1+0.30q_k),
+\left(0.25+0.75\frac{|\dot H_k|}{|\dot H|_{\max}}\right)(1+0.30q_k).
 \]
 
-burada `xi_k`, standart normal rassal değişkendir. Darbenin işareti `dH/dt` yönüne bağlanır.
+The sign follows the direction of `dH/dt`. This is an ABBM-inspired discrete process, not the complete ABBM stochastic differential equation.
 
-## 7. Pickup bobini ve ölçüm modeli
+## 7. Pickup and measurement model
 
-Her avalanche darbesi için sönümlü sinüzoidal sensör çekirdeği kullanılır:
+Each event excites a damped sinusoidal response:
 
 \[
-g(t)=e^{-t/\tau_s}\sin(2\pi f_s t),\qquad t\ge0.
+g(t)=e^{-t/\tau_s}\sin(2\pi f_s t), \qquad t\geq0.
 \]
 
-Olay treninin `g(t)` ile evrişimi temiz pickup sinyalini üretir. Daha sonra FFT alanında kosinüs geçişli idealize bir bant geçiren filtre uygulanır. Ölçülen sinyal:
+The event train is convolved with `g(t)` and passed through an FFT-domain band-pass with cosine transitions. The measured voltage is
 
 \[
-v_m(t)=G_s v_{clean}(t)+\sigma_n n_c(t)
+v_m(t)=G_s v_{\mathrm{clean}}(t)+\sigma_n n_c(t),
 \]
 
-şeklindedir. `n_c(t)`, birinci dereceden renklendirilmiş ve standart sapması normalize edilmiş gürültüdür.
+where `n_c(t)` is normalized first-order colored noise.
 
-## 8. Özellik uzayı
+## 8. Feature representation
 
-Ham sinyal yerine zaman, event, spektrum, manyetizasyon yarı-döngüsü ve Haar enerji özellikleri saklanır. Spektral olasılık:
+TrafoDNA stores features rather than every waveform. V2 includes:
 
-\[
-p_j=\frac{P_j}{\sum_k P_k}
-\]
+- RMS, absolute peak, crest factor, skewness, kurtosis, and zero-crossing rate;
+- event count, amplitude, interval, and excitation-normalized event descriptors;
+- spectral centroid, bandwidth, entropy, and normalized band energies;
+- positive/negative half-cycle energy ratios;
+- 12 phase-bin event ratios and 12 phase-bin energy ratios;
+- envelope width in seconds and excitation cycles;
+- four Haar detail energies and one approximation energy.
 
-ve normalize spektral entropi:
-
-\[
-S=-\frac{\sum_j p_j\log_2 p_j}{\log_2 N_f}
-\]
-
-olarak hesaplanır.
-
-Event tespiti, median absolute deviation tabanlı sağlam gürültü kestirimi kullanır:
+The phase bins expose the fixed `F_i(φ)` structure that V1 largely discarded. Event detection uses a median-absolute-deviation noise estimate:
 
 \[
 \hat\sigma=\frac{\operatorname{median}(|x-\operatorname{median}(x)|)}{0.67449}.
 \]
 
-Yerel maksimumlar `3.5*sigma` eşiği ve minimum olay uzaklığıyla seçilir.
+## 9. Condition-robust identity transform
 
-## 9. Kimlik modeli
-
-Özellikler yalnızca eğitim kümesinin ortalama ve standart sapmasıyla normalize edilir. Her nüve için centroid hesaplanır. Düzenlenmiş ortak sınıf-içi kovaryans:
+Raw features are standardized with enrollment statistics only. Let `z` be a standardized feature row and `u` the standardized measurable-condition vector containing temperature, excitation amplitude, excitation frequency, noise standard deviation, and sensor gain. The ridge nuisance model is
 
 \[
-\Sigma_r=(1-\alpha)\Sigma_w+\alpha\bar\sigma^2 I
+\hat B=\arg\min_B \|Z-UB\|_F^2+\lambda\|B\|_F^2.
 \]
 
-ve Mahalanobis uzaklığı:
+The residual identity representation is
 
 \[
-d_i(\mathbf{x})=
-\sqrt{(\mathbf{x}-\boldsymbol\mu_i)^T\Sigma_r^{-1}
-(\mathbf{x}-\boldsymbol\mu_i)}
+R=Z-U\hat B.
 \]
 
-kullanılır. En düşük uzaklık kimliği verir. Öklid uzaklığı yapılandırmadan seçilebilir.
+Stress, ageing, health labels, and core identities are not predictors in this model. Query-time operating metadata is required when the normalizer is enabled.
 
-## 10. PUF-tarzı ikili parmak izi
-
-Her özelliğin global enrollment medyanı eşik kabul edilir. Nüve centroid'i eşikten büyükse bit `1`, değilse `0` olur. Tekrar ölçümlerindeki bit uyuşma oranı reliability olarak kullanılır. Kararsız veya bütün nüvelerde aynı kalan bitler elenir.
-
-- Reliability: `1 - ortalama intra-Hamming mesafesi`
-- Uniqueness: nüve referansları arasındaki ortalama Hamming mesafesi
-- Uniformity: referans bitlerindeki `1` oranı
-- Bit aliasing: her bit konumunda nüveler arası `1` oranı
-- Min-entropy: bit bazında en olası değerden hesaplanan muhafazakâr kestirim
-
-Bu hesaplar kriptografik PUF kanıtı değildir.
-
-## 11. Kimlik ve sağlık ayrıştırması
-
-Her eğitim örneğinden ait olduğu nüvenin centroid'i çıkarılır:
+V2.1 additionally centers these residuals within each enrolled core and uses SVD to learn dominant within-core nuisance directions `V_q`. Identity features are projected onto their orthogonal complement:
 
 \[
-\mathbf{r}_{ij}=\mathbf{z}_{ij}-\boldsymbol\mu_i.
+R_\perp=R(I-V_qV_q^T).
 \]
 
-Residual matrise SVD/PCA uygulanır. Açıklanan varyansın varsayılan `%95`'ini taşıyan, en fazla sekiz bileşen korunur. Sağlık sınıfları bu residual koordinatlarda düzenlenmiş Mahalanobis uzaklığıyla değerlendirilir.
+This learns a shared condition-variation subspace without using stress or health labels. The projection is fixed after enrollment and therefore does not require query-time health metadata.
 
-Bu yaklaşım kimlik değişkenliğini tamamen yok etmeyi garanti etmez; yalnızca eğitimde görülen nüve ofsetlerini azaltır.
+For each residual dimension, a training-only Fisher score is computed:
 
-## 12. Sayısal bölme stratejisi
+\[
+J_j=\frac{S_{B,j}}{S_{W,j}+\epsilon}.
+\]
 
-- Koşul 9 ve 10 eğitim sırasında hiç görülmez.
-- Bilinen koşullarda tekrar 1-12 eğitim, 13-16 doğrulama, 17-20 test içindir.
-- Aynı örnek birden fazla bölmede bulunamaz.
-- Standardizasyon, centroid, kovaryans ve PUF eşikleri yalnızca eğitim verisinden hesaplanır.
+The highest-ranked dimensions are retained. Core centroids and a shared within-core covariance are then estimated. The regularized covariance is
 
-## 13. Modelin geçerlilik sınırı
+\[
+\Sigma_r=(1-\alpha)\Sigma_w+\alpha\bar\sigma^2I,
+\]
 
-Model aşağıdakileri çözmez:
+and identity uses Mahalanobis distance
 
-- gerçek tane geometrisi ve domain duvarı topolojisi,
-- laminasyonlar arası elektromanyetik bağlaşım,
-- uzaysal akı dağılımı,
-- gerçek pickup bobini konumu ve nüve geometrisi,
-- deneysel olarak kalibre edilmiş sıcaklık/stres katsayıları,
-- gerçek yaşlanma mekanizmalarının kimyasal ve metalürjik ayrıntıları.
+\[
+d_i(x)=\sqrt{(x-\mu_i)^T\Sigma_r^{-1}(x-\mu_i)}.
+\]
 
-Bu nedenle proje bir algoritma ve deney tasarımı ön çalışmasıdır. Gerçek bir transformatör kimlik doğrulama sistemi olduğunu iddia etmez.
+Feature count, `α`, and the number of removed nuisance components are selected with leave-one-condition-out validation. For each fold, one complete known condition is absent from enrollment and is evaluated using its validation repetitions. The objective combines mean condition accuracy, worst-condition accuracy, and mean EER. Test and deliberately unseen conditions are never used.
+
+## 10. Verification metrics
+
+The genuine score is the distance to the enrolled true-core centroid. Impostor scores are distances to every other centroid. Sweeping a threshold yields FAR, FRR, ROC, and EER. Validation EER and unseen-condition EER are reported separately in V2.
+
+## 11. Differential PUF-style fingerprint
+
+PUF enrollment operates in the fitted identity embedding. Candidate responses include each coordinate `r_j` and each difference `r_j-r_k`. Enrollment medians create all binary thresholds and core references. Candidate selection considers:
+
+- mean repeat reliability across enrolled cores;
+- validation-repeat reliability and worst-known-condition reliability;
+- bit aliasing bounds across the population;
+- normalized distance from the threshold;
+- redundancy measured by reference-bit correlation.
+
+Only candidates meeting the stability gates are selected up to the configured maximum. Lower-ranked candidates may be used only to satisfy the minimum response length. The selected reference for each core remains the enrollment median. Reported metrics include reliability, uniqueness, uniformity, bit aliasing, intra/inter Hamming distances, and a bitwise min-entropy estimate. These are PUF-style diagnostics, not a cryptographic proof.
+
+## 12. Identity/health separation
+
+The standardized enrollment centroid of each core is subtracted:
+
+\[
+r_{ij}=z_{ij}-\mu_i.
+\]
+
+Training health labels provide a Fisher ranking that removes residual dimensions dominated by nonspecific noise. PCA/SVD is then applied to the selected residual matrix. The configured variance fraction, capped at eight components, defines the health coordinates. Regularized Mahalanobis distance to health-class centroids produces the prediction and health index.
+
+## 13. Split and leakage policy
+
+- Conditions 9 and 10 are completely held out.
+- Known-condition repetitions 1–12 train, 13–16 validate, and 17–20 test.
+- A sample belongs to at most one partition.
+- Standardization, nuisance regression, feature ranking, centroids, covariance, and PUF enrollment use training data only.
+- Validation selects two identity hyperparameters.
+- Test and unseen labels are evaluation-only.
+
+## 14. Validity boundary
+
+The model does not solve real grain geometry, domain-wall topology, lamination coupling, spatial flux, coil placement, calibrated material coefficients, or metallurgical ageing chemistry. It is an algorithm and experiment-design study. Physical claims require independently manufactured cores, calibrated acquisition hardware, controlled nuisance variables, preregistered splits, uncertainty intervals, and replication.

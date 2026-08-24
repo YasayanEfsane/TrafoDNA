@@ -88,7 +88,7 @@ for coreIndex = 1:numCores
         end
     end
     if cfg.runtime.verbose
-        fprintf('Veri uretimi: %d/%d nuve tamamlandi.\n', coreIndex, numCores);
+        fprintf('Dataset generation: completed core %d/%d.\n', coreIndex, numCores);
     end
 end
 

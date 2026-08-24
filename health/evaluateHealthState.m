@@ -13,7 +13,8 @@ for sample = 1:size(normalized,1)
     end
     residuals(sample,:) = normalized(sample,:) - model.coreCentroids(corePosition,:);
 end
-healthCoordinates = (residuals-model.residualMean)*model.basis;
+selectedResiduals = residuals(:,model.selectedFeatures);
+healthCoordinates = (selectedResiduals-model.residualMean)*model.basis;
 
 numClasses = numel(model.healthClasses);
 distances = zeros(size(features,1),numClasses);

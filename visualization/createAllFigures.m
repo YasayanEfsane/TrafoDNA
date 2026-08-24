@@ -97,8 +97,9 @@ legend({'Intra-core','Inter-core'},'Location','best');
 localSave(fh,cfg,'10_hamming_distances.png');
 
 selected = splits.test | splits.unseen;
-[allPrediction,~,~] = predictIdentity(identityModel,dataset.features(selected,:));
 selectedMetadata = dataset.metadata(selected,:);
+[allPrediction,~,~] = predictIdentity(identityModel,dataset.features(selected,:), ...
+    selectedMetadata);
 
 % 11. Temperature robustness.
 [temperatureValues,temperatureAccuracy] = localGroupedAccuracy( ...
@@ -130,9 +131,9 @@ localSave(fh,cfg,'13_aging_health_index.png');
 % 14. Identity PCA view.
 trainFeatures = dataset.features(splits.train,:);
 trainIds = dataset.metadata.CoreId(splits.train);
-standardizedTrain = standardizeFeatures(trainFeatures,identityModel.featureMean, ...
-    identityModel.featureStd,identityModel.activeFeatures);
-identity2D = localPCA2(standardizedTrain);
+identityEmbedding = transformIdentityFeatures(identityModel, trainFeatures, ...
+    dataset.metadata(splits.train,:));
+identity2D = localPCA2(identityEmbedding);
 fh = figure('Visible',visible,'Color','w');
 scatter(identity2D(:,1),identity2D(:,2),12,trainIds,'filled'); grid on; colorbar;
 xlabel('PC 1'); ylabel('PC 2'); title('Virtual core clusters in identity feature space');

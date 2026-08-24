@@ -19,8 +19,29 @@ for k = 1:numel(coreLabels)
     residuals(selected,:) = normalized(selected,:) - coreCentroids(k,:);
 end
 
-residualMean = mean(residuals,1);
-centeredResiduals = residuals - residualMean;
+% Supervised training-only filtering prevents high-variance identity noise
+% from dominating the unsupervised PCA health coordinates.
+classes = unique(healthLabels(:),'stable')';
+globalResidualMean = mean(residuals,1);
+betweenScatter = zeros(1,size(residuals,2));
+withinScatter = zeros(1,size(residuals,2));
+for k = 1:numel(classes)
+    selected = strcmp(healthLabels,classes{k});
+    classRows = residuals(selected,:);
+    classMean = mean(classRows,1);
+    betweenScatter = betweenScatter + sum(selected)*(classMean-globalResidualMean).^2;
+    withinScatter = withinScatter + sum((classRows-classMean).^2,1);
+end
+healthFisherScore = (betweenScatter/max(numel(classes)-1,1)) ./ ...
+    max(withinScatter/max(size(residuals,1)-numel(classes),1),eps);
+healthFisherScore(~isfinite(healthFisherScore)) = 0;
+[~,ranking] = sort(healthFisherScore,'descend');
+selectedCount = min(max(1,cfg.health.maxFeatures),numel(ranking));
+selectedFeatures = ranking(1:selectedCount);
+selectedResiduals = residuals(:,selectedFeatures);
+
+residualMean = mean(selectedResiduals,1);
+centeredResiduals = selectedResiduals - residualMean;
 [~, singularValues, rightVectors] = svd(centeredResiduals, 'econ');
 variance = diag(singularValues).^2;
 if isempty(variance) || sum(variance) <= eps
@@ -33,7 +54,6 @@ componentCount = max(1,min([componentCount,cfg.health.maxComponents,size(rightVe
 basis = rightVectors(:,1:componentCount);
 healthCoordinates = centeredResiduals*basis;
 
-classes = unique(healthLabels(:),'stable')';
 healthCentroids = zeros(numel(classes),componentCount);
 for k = 1:numel(classes)
     selected = strcmp(healthLabels,classes{k});
@@ -55,6 +75,8 @@ model.featureStd = sigma;
 model.activeFeatures = active;
 model.coreIds = coreLabels;
 model.coreCentroids = coreCentroids;
+model.selectedFeatures = selectedFeatures;
+model.healthFisherScore = healthFisherScore;
 model.residualMean = residualMean;
 model.basis = basis;
 model.healthClasses = classes;

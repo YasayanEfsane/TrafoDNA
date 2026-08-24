@@ -1,10 +1,19 @@
-function metrics = evaluatePUF(pufModel, features, coreIds)
+function metrics = evaluatePUF(pufModel, features, coreIds, metadata)
 %EVALUATEPUF Evaluate reliability, uniqueness, uniformity, and entropy.
 %   METRICS also includes genuine/impostor Hamming-distance distributions.
 
-normalized = standardizeFeatures(features, pufModel.featureMean, ...
-    pufModel.featureStd, pufModel.activeFeatures);
-bits = normalized(:,pufModel.selectedBits) > ...
+if nargin < 4
+    metadata = [];
+end
+if strcmp(pufModel.transformMode, 'identity_embedding')
+    embedding = transformIdentityFeatures(pufModel.identityModel, features, metadata);
+else
+    embedding = standardizeFeatures(features, pufModel.featureMean, ...
+        pufModel.featureStd, pufModel.activeFeatures);
+end
+candidateValues = localCandidateValues(embedding, ...
+    pufModel.candidateFirstIndex, pufModel.candidateSecondIndex);
+bits = candidateValues(:,pufModel.selectedBits) > ...
     pufModel.thresholds(pufModel.selectedBits);
 numSamples = size(bits,1);
 numCores = numel(pufModel.coreIds);
@@ -50,4 +59,15 @@ metrics.minEntropyBits = sum(perBitEntropy);
 metrics.normalizedMinEntropy = mean(perBitEntropy);
 metrics.numSelectedBits = sum(pufModel.selectedBits);
 metrics.testBits = bits;
+metrics.meanEnrollmentReliability = mean(pufModel.enrollmentReliability(:));
+metrics.meanValidationReliability = mean(pufModel.validationReliability(:));
+metrics.meanWorstConditionReliability = mean(pufModel.worstConditionReliability);
+end
+
+function values = localCandidateValues(embedding, firstIndex, secondIndex)
+values = embedding(:,firstIndex);
+paired = secondIndex > 0;
+if any(paired)
+    values(:,paired) = values(:,paired) - embedding(:,secondIndex(paired));
+end
 end
