@@ -15,6 +15,9 @@ for k = 1:sessions.numSessions
 end
 sessionBits = sessionValues > thresholds;
 metrics = computePUFMetrics(sessionBits,sessions.coreIds,pufModel);
+metrics.numEligibleCandidates = pufModel.numEligibleCandidates;
+metrics.numSelectedEligibleBits = pufModel.numSelectedEligibleBits;
+metrics.numFallbackBits = pufModel.numFallbackBits;
 metrics.readsPerDecision = readsPerDecision;
 metrics.numSessions = sessions.numSessions;
 metrics.droppedMeasurements = sessions.droppedMeasurements;

@@ -213,6 +213,56 @@ Identity sessions take the feature-wise median of the three reads and apply the 
 
 The three-read metrics are supplementary and never overwrite single-read accuracy, EER, or reliability.
 
-## 15. Validity boundary
+## 15. V3 persistent active pinning map
 
-The model does not solve real grain geometry, domain-wall topology, lamination coupling, spatial flux, coil placement, calibrated material coefficients, or metallurgical ageing chemistry. It is an algorithm and experiment-design study. Physical claims require independently manufactured cores, calibrated acquisition hardware, controlled nuisance variables, preregistered splits, uncertainty intervals, and replication.
+V3 leaves the passive simulator unchanged and defines a separate compact active model. Core `i` receives 256 fixed virtual pinning sites
+
+\[
+P_i=\{h_j,w_j,b_j,q_j,s_j,\eta_{T,j},\eta_{\sigma,j},\eta_{a,j}\}_{j=1}^{256},
+\]
+
+where `h` is the activation threshold, `w` is the event weight, `b` is the magnetisation branch, `q` is the rate exponent, `s` is the spectral tendency, and the three `η` terms describe site-level temperature, stress, and ageing sensitivity. This map is generated once from the core seed and is never redrawn between scenarios or challenges.
+
+For scenario `e`, the effective threshold is
+
+\[
+h_{i,j,e}^{*}=h_{i,j}(1+\eta_{T,j}\Delta T)
+(\text{stress and ageing factors})+b_jH_{\mathrm{reset}}.
+\]
+
+For challenge `c`, field amplitude, frequency, waveform sweep factor, and a fixed site-waveform preference determine an activation probability. Sixteen Bernoulli activation cycles estimate the repeated site activity. The compact response contains activation, weighted count, energy, peak amplitude, threshold moments, spectral moments, branch balance, rate moment, and circular phase coordinates.
+
+The map makes core identity persistent while leaving activation and measurement stochastic. It is a reduced theoretical mechanism rather than a spatial domain-wall simulation.
+
+## 16. V3 differential challenge representation
+
+The active challenge matrix is the Cartesian product of three waveforms, four field amplitudes, and two frequencies. Let `x_{i,e,r,c,k}` denote positive response coordinate `k` for core `i`, scenario `e`, repeated sweep `r`, and challenge `c`. Relative to reference challenge `c_0`, V3 forms
+
+\[
+d_{i,e,r,c,k}=\log(x_{i,e,r,c,k}+\epsilon)
+-\log(x_{i,e,r,c_0,k}+\epsilon).
+\]
+
+Signed phase coordinates use ordinary differences. The absolute transformed reference response is retained, giving 288 features per complete sweep. A common multiplicative sensor gain cancels from every log-difference coordinate.
+
+The existing enrollment-only standardization, measurable-condition residualization, Fisher selection, covariance regularization, centroid verification, differential PUF-style bit screening, and three-sweep median evaluation are then applied without access to V3 final rows.
+
+Identity and PUF-style enrollment use separate training-only transforms. The identity classifier chooses its feature count, covariance shrinkage, and nuisance-subspace size by known-condition holdout. The fixed PUF transform retains 96 Fisher-ranked coordinates and removes 20 dominant within-core nuisance directions before thresholds are enrolled. PUF candidate scoring weights enrollment reliability by 0.20, validation reliability by 0.30, and worst-known-condition reliability by 0.50. This separation prevents an identity-accuracy objective from silently selecting a representation with unstable raw bits.
+
+## 17. V3 split and decision boundary
+
+- Scenario IDs 101–108 are known conditions.
+- Scenario IDs 109–114 are the development holdout. IDs 111–114 were
+  reclassified before preregistration because a shadow design model used them.
+- Scenario IDs 115–118 are the untouched preregistered final holdout. Their
+  six-dimensional coordinates are Halton points 23–26 in bases
+  2, 3, 5, 7, 11, and 13.
+- Sweeps 1–4 enroll, 5–6 validate, and 7–9 test within known scenarios.
+- Stress, ageing, health labels, and core labels are forbidden nuisance predictors.
+- Ten final checks are fixed in `docs/V3_PREREGISTRATION.md`, including a
+  minimum of 32 strictly eligible raw bits with fallback disabled.
+- V2.2 conditions 11–12 remain observed historical evidence and are not reused.
+
+## 18. Validity boundary
+
+The model does not solve real grain geometry, domain-wall topology, lamination coupling, spatial flux, coil placement, calibrated material coefficients, or metallurgical ageing chemistry. The V3 pinning sites are persistent numerical latent variables, not measured defects. This is an algorithm and experiment-design study. Physical claims require independently manufactured cores, calibrated acquisition hardware, controlled nuisance variables, preregistered splits, uncertainty intervals, and replication.
