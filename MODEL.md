@@ -122,7 +122,7 @@ TrafoDNA stores features rather than every waveform. V2 includes:
 The phase bins expose the fixed $F_i(\varphi)$ structure that V1 largely discarded. Event detection uses a median-absolute-deviation noise estimate:
 
 $$
-\hat\sigma=\frac{\operatorname{median}(|x-\operatorname{median}(x)|)}{0.67449}.
+\hat\sigma=\frac{\mathrm{median}(|x-\mathrm{median}(x)|)}{0.67449}.
 $$
 
 ## 9. Condition-robust identity transform
@@ -130,7 +130,7 @@ $$
 Raw features are standardized with enrollment statistics only. Let $z$ be a standardized feature row and $u$ the standardized measurable-condition vector containing temperature, excitation amplitude, excitation frequency, noise standard deviation, and sensor gain. The ridge nuisance model is
 
 $$
-\widehat B=\underset{B}{\operatorname{arg\,min}}
+\widehat B=\underset{B}{\mathrm{arg\,min}}
 \left(\lVert Z-UB\rVert_F^2+\lambda\lVert B\rVert_F^2\right).
 $$
 
