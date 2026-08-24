@@ -6,6 +6,8 @@ The active protocol was frozen in commit `a0506152845b6fc22af1785b22e5a68b90e746
 
 Scenarios 115–118 are now observed. They cannot be used for fitting, threshold selection, challenge selection, feature engineering, or future claims of untouched evidence.
 
+After the first result was recorded, the complete MATLAB regression suite passed all 17 tests, including the active challenge contract, persistent pinning-map reproducibility, partition integrity, differential-gain cancellation, and end-to-end active identity/PUF/final-gate path. Test passage establishes implementation invariants; it does not change the preregistered hypothesis decision or provide physical validation.
+
 ## First default-seed result
 
 | Development metric | Result |
