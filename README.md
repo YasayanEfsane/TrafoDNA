@@ -104,6 +104,8 @@ run_v31_capacity
 
 The audit compares the frozen greedy result with degree-aware, forced-start, seeded multistart, local-improvement, and bounded target-search methods. It reports a development-only lower bound unless the search completes exhaustively. See [docs/V31_CAPACITY_AUDIT.md](docs/V31_CAPACITY_AUDIT.md) for the integrity boundary and interpretation rules.
 
+The first default audit completed exhaustively. All selector variants retained 26 bits, and the bounded exact search proved that the current 179-candidate correlation graph has no admissible 32-bit subset at the unchanged 0.80 limit. Development reliability remained 0.9471, uniqueness 0.5263, worst-scenario reliability 0.9248, and three-sweep reliability 0.9570. This closes selector-only optimization for the V3 representation; a later V3.1 study must construct a new enrollment-only bit representation and use a new final holdout.
+
 ## Run a quick study
 
 ```matlab

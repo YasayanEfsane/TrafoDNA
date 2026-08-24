@@ -39,6 +39,25 @@ If these methods remain below 32, a bounded branch-and-bound search attempts eit
 
 Any later V3.1 hypothesis test must freeze a new random seed, new development scenarios, and a new untouched final holdout after the selector is chosen. The current audit is development evidence only and cannot support a new final claim.
 
+## First default audit result
+
+The default audit reproduced all 179 individually eligible candidates and the frozen 26-bit selection exactly. The deterministic degree-aware selector, forced-start and seeded multistart search, and local improvement also retained 26. The bounded branch-and-bound search completed exhaustively with a maximum independent-set size of 26, below the 32-bit target.
+
+| Development metric | Result |
+|---|---:|
+| Eligible candidates before correlation | 179 |
+| Frozen score-greedy bits | 26 |
+| Degree-aware bits | 26 |
+| Exhaustive maximum admissible bits | 26 |
+| Target reached | No |
+| PUF reliability | 0.9471 |
+| PUF uniqueness | 0.5263 |
+| Worst-development-scenario reliability | 0.9248 |
+| Three-sweep PUF reliability | 0.9570 |
+| Locked final rows used | 0 |
+
+This proves that selector ordering is not the remaining bottleneck for the current graph. No algorithm can select 32 mutually admissible nodes from that fixed graph. Reaching the capacity target therefore requires a new enrollment-only representation, a better-conditioned population design, additional independent challenge contrasts, or a combination of these changes. The 0.80 correlation limit must not be relaxed merely to reverse the observed result.
+
 ## Run
 
 With the locked V3 result structure still available:
