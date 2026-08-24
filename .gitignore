@@ -10,6 +10,9 @@
 results/*.mat
 results/*.csv
 results/figures/
+results_active_v3/*.mat
+results_active_v3/*.csv
+results_active_v3/figures/
 
 # Operating-system metadata
 .DS_Store

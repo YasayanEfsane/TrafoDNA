@@ -85,9 +85,13 @@ eligible = meanEnrollmentReliability >= cfg.puf.minimumBitReliability & ...
     balanced;
 selectionReliability = min([meanEnrollmentReliability; ...
     meanValidationReliability;worstConditionReliability],[],1);
-selectionScore = 0.30*meanEnrollmentReliability + ...
-    0.45*meanValidationReliability + 0.25*worstConditionReliability - ...
-    0.50*abs(bitAlias-0.5) + 0.05*min(normalizedMargin,4);
+selectionWeights = localSelectionWeights(cfg);
+selectionScore = selectionWeights.enrollmentReliability* ...
+    meanEnrollmentReliability + ...
+    selectionWeights.validationReliability*meanValidationReliability + ...
+    selectionWeights.worstConditionReliability*worstConditionReliability - ...
+    selectionWeights.aliasPenalty*abs(bitAlias-0.5) + ...
+    selectionWeights.marginReward*min(normalizedMargin,4);
 
 preferred = localRank(find(eligible),selectionScore);
 balancedBackup = localRank(find(balanced & ~eligible),selectionScore);
@@ -95,20 +99,34 @@ remainingBackup = localRank(find(~balanced),selectionScore);
 maximumBits = min(cfg.puf.maximumSelectedBits,numCandidates);
 minimumBits = min(cfg.puf.minimumSelectedBits,maximumBits);
 
-% Stop after the genuinely eligible set. Backups are used only to satisfy
-% the minimum response length; the V2 implementation incorrectly continued
-% filling every response to the configured maximum.
+% Stop after the genuinely eligible set. V2 may use backups only to satisfy
+% its minimum response length; V3 disables that fallback and tests the
+% strict eligible-bit count explicitly.
 selectedIndices = localExtendSelection(referenceBitsAll,preferred,[], ...
     maximumBits,cfg.puf.maximumReferenceCorrelation);
-if numel(selectedIndices) < minimumBits
-    selectedIndices = localExtendSelection(referenceBitsAll,balancedBackup, ...
-        selectedIndices,minimumBits,cfg.puf.maximumReferenceCorrelation);
+allowFallback = true;
+if isfield(cfg.puf,'allowFallbackToMinimum')
+    allowFallback = logical(cfg.puf.allowFallbackToMinimum);
 end
-if numel(selectedIndices) < minimumBits
-    fallback = [balancedBackup remainingBackup];
-    fallback = setdiff(fallback,selectedIndices,'stable');
-    needed = min(minimumBits-numel(selectedIndices),numel(fallback));
-    selectedIndices = [selectedIndices fallback(1:needed)];
+if allowFallback
+    if numel(selectedIndices) < minimumBits
+        selectedIndices = localExtendSelection(referenceBitsAll,balancedBackup, ...
+            selectedIndices,minimumBits,cfg.puf.maximumReferenceCorrelation);
+    end
+    if numel(selectedIndices) < minimumBits
+        fallback = [balancedBackup remainingBackup];
+        fallback = setdiff(fallback,selectedIndices,'stable');
+        needed = min(minimumBits-numel(selectedIndices),numel(fallback));
+        selectedIndices = [selectedIndices fallback(1:needed)];
+    end
+elseif isempty(selectedIndices)
+    % Retain one explicitly marked diagnostic bit so failure metrics remain
+    % computable; the strict eligible-bit acceptance gate will fail.
+    diagnostic = [balancedBackup remainingBackup];
+    if isempty(diagnostic)
+        diagnostic = localRank(1:numCandidates,selectionScore);
+    end
+    selectedIndices = diagnostic(1);
 end
 
 selectedBits = false(1,numCandidates);
@@ -131,6 +149,42 @@ pufModel.worstConditionReliability = worstConditionReliability(selectedBits);
 pufModel.selectionReliability = selectionReliability(selectedBits);
 pufModel.bitAliasEnrollment = bitAlias(selectedBits);
 pufModel.selectionScore = selectionScore(selectedBits);
+pufModel.selectionWeights = selectionWeights;
+pufModel.numEligibleCandidates = sum(eligible);
+pufModel.numSelectedEligibleBits = sum(eligible(selectedBits));
+pufModel.numFallbackBits = sum(~eligible(selectedBits));
+pufModel.allowFallbackToMinimum = allowFallback;
+end
+
+function weights = localSelectionWeights(cfg)
+weights.enrollmentReliability = 0.30;
+weights.validationReliability = 0.45;
+weights.worstConditionReliability = 0.25;
+weights.aliasPenalty = 0.50;
+weights.marginReward = 0.05;
+if isfield(cfg.puf,'selectionWeights')
+    configured = cfg.puf.selectionWeights;
+    names = fieldnames(weights);
+    for k = 1:numel(names)
+        if isfield(configured,names{k})
+            value = configured.(names{k});
+            validateattributes(value,{'numeric'},{'scalar','finite','nonnegative'});
+            weights.(names{k}) = value;
+        end
+    end
+end
+reliabilityTotal = weights.enrollmentReliability + ...
+    weights.validationReliability + weights.worstConditionReliability;
+if reliabilityTotal <= 0
+    error('TrafoDNA:InvalidPUFSelectionWeights', ...
+        'At least one PUF reliability-selection weight must be positive.');
+end
+weights.enrollmentReliability = ...
+    weights.enrollmentReliability/reliabilityTotal;
+weights.validationReliability = ...
+    weights.validationReliability/reliabilityTotal;
+weights.worstConditionReliability = ...
+    weights.worstConditionReliability/reliabilityTotal;
 end
 
 function [meanReliability,worstReliability,reliabilityByCore] = ...

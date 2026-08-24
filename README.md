@@ -12,7 +12,7 @@ TrafoDNA is a MATLAB-only numerical feasibility study for transformer-core ident
 
 ## Current status
 
-The V1 benchmark is preserved as a documented reference. The merged `main` branch contains V2.1, and the default-seed runs reported:
+The V1 benchmark is preserved as a documented reference. The merged `main` branch contains the locked V2.2 result, and the default-seed runs reported:
 
 | Metric | V1 | V2.0 | V2.1 | Engineering target |
 |---|---:|---:|---:|---:|
@@ -31,6 +31,14 @@ V2.1 still passed four of seven single-read gates. It improved PUF reliability a
 The first preregistered run passed **1 of 7** final-holdout gates. Single-read identity accuracy was 22.50%, EER was 0.4107, PUF reliability was 0.6973, and health accuracy was 90.38%. Three-read identity accuracy was 24.58%, EER was 0.3964, and PUF reliability was 0.7203.
 
 Conditions 11–12 are now observed and permanently frozen. They must not be described as untouched in any later experiment. The result does not support robust passive identity or PUF operation under the current arbitrary-condition protocol; it does support the health-classification feasibility result. See [docs/FINAL_HOLDOUT_RESULTS.md](docs/FINAL_HOLDOUT_RESULTS.md) for the locked record and interpretation.
+
+### Locked V3 active result
+
+V3 preserves the complete passive result and adds a separate active magnetic challenge-response experiment. Each virtual core receives one persistent 256-site pinning map and is queried with a fixed matrix of 24 waveform, amplitude, and frequency challenges, averaged over 16 excitation cycles per challenge. Positive response quantities are expressed as log ratios to a reference challenge; signed phase quantities use differences. Identity classification and PUF-style enrollment use separately fitted, enrollment-only transforms because multiclass accuracy and raw-bit stability are distinct objectives.
+
+The V3 random seed, 18 independent scenarios, final scenarios 115–118, representation, and ten final gates were frozen in [docs/V3_PREREGISTRATION.md](docs/V3_PREREGISTRATION.md) and commit `a0506152845b6fc22af1785b22e5a68b90e7462f` before the first final run.
+
+That first run passed **9 of 10** gates. Final identity accuracy was 100.00%, identity EER was 0.0038743, raw PUF reliability was 0.93953, uniqueness was 0.52632, worst-scenario reliability was 0.91987, and three-sweep PUF reliability was 0.95048. The only failed gate was response length: 179 candidates passed the stability-and-balance eligibility screen, but the fixed greedy correlation pruning retained only 26 mutually admissible raw bits against a target of 32. The preregistered all-gates decision is therefore **NOT SUPPORTED**. Scenarios 115–118 are now observed and frozen. See [docs/V3_FINAL_RESULTS.md](docs/V3_FINAL_RESULTS.md) for the complete locked record.
 
 ## What V2.2 adds
 
@@ -71,6 +79,19 @@ results = main();
 The default study generates 20 virtual cores, 12 operating conditions, 20 repetitions per condition, and 4,800 feature records. Conditions 1–8 are known, 9–10 are the frozen development holdout, and 11–12 are the preregistered final holdout. Raw waveforms are streamed: only a small configured subset is retained for plotting.
 
 The summary reports actual computed values, the selected identity-model settings, and the number of V2 acceptance gates passed.
+
+## Reproduce the locked V3 active study
+
+The preregistration commit is preserved. Future executions reproduce an observed result; they do not create a new untouched final evaluation:
+
+```matlab
+addpath(genpath(pwd));
+activeResults = main_active();
+```
+
+The default active study uses 20 cores, 18 independent V3 scenarios, 9 complete sweeps per core/scenario, 24 challenges per sweep, and 16 excitation cycles per challenge. It produces 3,240 differential response records from 77,760 compact challenge simulations. Scenarios 101–108 are known, 109–114 are development-only, and 115–118 are the locked V3 final holdout.
+
+`main_active` does not overwrite the passive `main` results. Active outputs are written under `results_active_v3/`.
 
 ## Run a quick study
 
@@ -121,6 +142,11 @@ The suite checks:
 - synthetic extrapolation across an unseen removable condition shift.
 - leave-one-condition-out tuning and nuisance-subspace integrity.
 - exact three-read session formation and final-holdout execution paths.
+- the exact 24-challenge V3 contract and unique reference challenge;
+- persistent pinning-map reproducibility and cross-core differences;
+- finite, seed-reproducible compact active responses;
+- common-gain cancellation in differential challenge coordinates;
+- active partition integrity and complete V3 identity/PUF/final-gate paths.
 
 Passing these tests establishes implementation invariants. It does not replace the full benchmark or experimental validation.
 
@@ -137,6 +163,8 @@ Passing these tests establishes implementation invariants. It does not replace t
 9. `separateIdentityAndHealth` removes core centroids and learns health coordinates.
 10. Evaluation preserves single-read metrics, adds three-read session metrics, and produces benchmark/final-holdout gates, CSV/MAT outputs, and 16 figures.
 
+The separate V3 pipeline uses `createActiveCore`, `simulateChallengeResponse`, `generateActiveDataset`, and `buildDifferentialChallengeFeatures`. It then reuses the same training-only identity, verification, PUF, session, and leakage-control infrastructure before applying ten V3-specific final gates. `trainActivePUFTransform` fixes a separate 96-feature, 20-nuisance-component representation for raw-bit stability; validation rows screen bits but do not fit that transform. V3 disables fallback filling, so only candidates that pass every strict stability gate count toward the 32-bit requirement.
+
 ## Leakage controls
 
 - Conditions 9 and 10 are absent from enrollment and validation and are now treated as observed development evidence.
@@ -147,6 +175,10 @@ Passing these tests establishes implementation invariants. It does not replace t
 - Identity hyperparameters are scored on conditions excluded from the corresponding fold's enrollment rows.
 - Test and unseen-condition labels never influence fitting or tuning.
 - The identity nuisance model sees measurable operating variables only; it never sees stress, ageing, health state, or identity labels as predictors.
+- V3 scenarios 115–118 were absent from every fit, hyperparameter choice, threshold, and bit-selection step in the locked first run. They are now observed and cannot be reused as fresh evidence.
+- Candidate final scenarios 111–114 were used only during the pre-commit shadow design audit and are therefore permanently classified as development evidence.
+- V3 uses a new random seed and independent scenario design; the observed V2.2 final conditions are not reused.
+- V3 nuisance regression may use measured temperature, noise, sensor gain, and reset offset, but never stress, ageing, health state, or identity labels.
 
 ## Output files
 
@@ -161,15 +193,28 @@ Passing these tests establishes implementation invariants. It does not replace t
 
 Generated data and figures are ignored by Git; `results/README.md` remains tracked.
 
+`main_active` writes under `results_active_v3/`:
+
+- `trafodna_active_v3_results.mat`
+- `active_response_features.csv`
+- `active_final_checks.csv`
+- `active_final_puf_by_scenario.csv`
+- `active_passive_comparison.csv`
+- `active_challenge_set.csv`
+- `active_scenario_set.csv`
+- `figures/01_active_challenge_matrix.png` through `08_active_final_accuracy_by_scenario.png`
+
 ## Repository layout
 
 ```text
 TrafoDNA/
 ├── main.m
+├── main_active.m
 ├── run_tests.m
 ├── README.md
 ├── MODEL.md
 ├── config/
+├── challenges/
 ├── models/
 ├── features/
 ├── dataset/
@@ -180,7 +225,8 @@ TrafoDNA/
 ├── tests/
 ├── utils/
 ├── docs/
-└── results/
+├── results/
+└── results_active_v3/
 ```
 
 ## Important limitations
@@ -194,8 +240,10 @@ TrafoDNA/
 7. The reported V1 values came from one deterministic default configuration and should not be generalized beyond it.
 8. A three-read decision requires three independent acquisitions and must always be reported separately from single-read performance.
 9. Figures 11–13 are grouped-condition diagnostics. Temperature, noise, ageing, and other condition variables vary jointly, so these plots are not controlled one-factor causal sweeps.
+10. The V3 persistent pinning-site map is a physics-inspired latent model, not a calibrated metallurgical reconstruction.
+11. The idealized V3 excitation time is 11.52 seconds per 24-challenge sweep and 34.56 seconds per three-sweep decision; reset, switching, settling, and data-transfer overhead remain unmodeled.
 
-See [MODEL.md](MODEL.md) for equations, [docs/BASELINE_ANALYSIS.md](docs/BASELINE_ANALYSIS.md) for the V1/V2 rationale, and [docs/FINAL_HOLDOUT_RESULTS.md](docs/FINAL_HOLDOUT_RESULTS.md) for the first preregistered final result.
+See [MODEL.md](MODEL.md) for equations, [docs/BASELINE_ANALYSIS.md](docs/BASELINE_ANALYSIS.md) for the V1/V2 rationale, [docs/FINAL_HOLDOUT_RESULTS.md](docs/FINAL_HOLDOUT_RESULTS.md) for the locked V2.2 result, [docs/V3_DESIGN_AUDIT.md](docs/V3_DESIGN_AUDIT.md) for the transparent pre-freeze shadow audit, [docs/V3_PREREGISTRATION.md](docs/V3_PREREGISTRATION.md) for the active protocol, and [docs/V3_FINAL_RESULTS.md](docs/V3_FINAL_RESULTS.md) for its locked outcome.
 
 ## Path to physical validation
 
