@@ -1,5 +1,5 @@
 function createAllFigures(dataset, splits, identityModel, testMetrics, unseenMetrics, pufModel, pufMetrics, healthModel, analysis, cfg)
-%CREATEALLFIGURES Generate the requested figures plus a health-robustness plot.
+%CREATEALLFIGURES Generate signal, evaluation, and grouped-condition diagnostics.
 %   Figures are written as numbered PNG files under CFG figure directory.
 
 if isempty(dataset.rawExamples)
@@ -60,31 +60,32 @@ grid on; xlabel('Time (ms)'); ylabel('Voltage (mV)');
 title('Signals from different virtual cores'); legend('Location','best');
 localSave(fh,cfg,'06_different_cores.png');
 
-% 7. Genuine/impostor distributions.
+% 7. Development-holdout genuine/impostor distributions.
 fh = figure('Visible',visible,'Color','w'); hold on;
 histogram(unseenMetrics.genuineDistances,30,'Normalization','probability','FaceAlpha',0.65);
 histogram(unseenMetrics.impostorDistances,30,'Normalization','probability','FaceAlpha',0.55);
 grid on; xlabel('Verification distance'); ylabel('Probability');
-title('Intra/inter-transformer distance distributions');
+title('Development-holdout genuine/impostor distances');
 legend({'Genuine (intra)','Impostor (inter)'},'Location','best');
 localSave(fh,cfg,'07_intra_inter_distances.png');
 
-% 8. Confusion matrix without toolbox dependence.
+% 8. Known-condition confusion matrix without toolbox dependence.
 fh = figure('Visible',visible,'Color','w');
 imagesc(testMetrics.confusionMatrix); axis image; colorbar;
-xlabel('Predicted core'); ylabel('True core'); title('Identity confusion matrix');
+xlabel('Predicted core'); ylabel('True core');
+title('Known-condition identity confusion matrix');
 set(gca,'XTick',1:numel(testMetrics.coreIds),'YTick',1:numel(testMetrics.coreIds), ...
     'XTickLabel',testMetrics.coreIds,'YTickLabel',testMetrics.coreIds);
 localSave(fh,cfg,'08_confusion_matrix.png');
 
-% 9. ROC and EER.
+% 9. Development-holdout ROC and EER.
 fh = figure('Visible',visible,'Color','w');
 plot(unseenMetrics.falseAcceptRate,unseenMetrics.trueAcceptRate,'LineWidth',1.5); hold on;
 plot(unseenMetrics.far(unseenMetrics.eerIndex), ...
     1-unseenMetrics.frr(unseenMetrics.eerIndex),'ro','MarkerFaceColor','r');
 plot([0 1],[0 1],'k--'); grid on; axis([0 1 0 1]);
 xlabel('False acceptance rate'); ylabel('True acceptance rate');
-title(sprintf('Verification ROC (EER = %.3f)',unseenMetrics.eer));
+title(sprintf('Development-holdout ROC (EER = %.3f)',unseenMetrics.eer));
 localSave(fh,cfg,'09_roc_eer.png');
 
 % 10. Hamming distances.
@@ -92,7 +93,8 @@ fh = figure('Visible',visible,'Color','w'); hold on;
 histogram(pufMetrics.intraHammingDistance,25,'Normalization','probability','FaceAlpha',0.65);
 histogram(pufMetrics.interHammingDistance,25,'Normalization','probability','FaceAlpha',0.55);
 grid on; xlabel('Normalized Hamming distance'); ylabel('Probability');
-title(sprintf('Binary fingerprints (%d stable bits)',pufMetrics.numSelectedBits));
+title(sprintf('Known/development fingerprints (%d stable bits)', ...
+    pufMetrics.numSelectedBits));
 legend({'Intra-core','Inter-core'},'Location','best');
 localSave(fh,cfg,'10_hamming_distances.png');
 
@@ -101,31 +103,34 @@ selectedMetadata = dataset.metadata(selected,:);
 [allPrediction,~,~] = predictIdentity(identityModel,dataset.features(selected,:), ...
     selectedMetadata);
 
-% 11. Temperature robustness.
+% 11. Accuracy grouped by condition temperature. Other condition variables
+% vary jointly, so this is descriptive rather than a controlled sweep.
 [temperatureValues,temperatureAccuracy] = localGroupedAccuracy( ...
     selectedMetadata.TemperatureK,allPrediction,selectedMetadata.CoreId);
 fh = figure('Visible',visible,'Color','w');
 plot(temperatureValues-273.15,100*temperatureAccuracy,'o-','LineWidth',1.4); grid on;
 xlabel('Temperature (degC)'); ylabel('Identity accuracy (%)'); ylim([0 105]);
-title('Identity robustness versus temperature');
+title('Identity accuracy grouped by condition temperature');
 localSave(fh,cfg,'11_temperature_accuracy.png');
 
-% 12. Noise robustness.
+% 12. Accuracy grouped by condition sensor noise. Other condition variables
+% vary jointly, so this is descriptive rather than a controlled sweep.
 [noiseValues,noiseAccuracy] = localGroupedAccuracy(selectedMetadata.NoiseStdV, ...
     allPrediction,selectedMetadata.CoreId);
 fh = figure('Visible',visible,'Color','w');
 plot(1e6*noiseValues,100*noiseAccuracy,'s-','LineWidth',1.4); grid on;
 xlabel('Noise standard deviation (uV)'); ylabel('Identity accuracy (%)'); ylim([0 105]);
-title('Identity robustness versus sensor noise');
+title('Identity accuracy grouped by condition sensor noise');
 localSave(fh,cfg,'12_noise_accuracy.png');
 
-% 13. Health index versus ageing.
+% 13. Health index grouped by simulated ageing. Stress and operating
+% variables also vary across these condition groups.
 [agingValues,meanHealthIndex] = localGroupedMean(selectedMetadata.AgingLevel, ...
     analysis.healthMetrics.healthIndex);
 fh = figure('Visible',visible,'Color','w');
 plot(agingValues,meanHealthIndex,'d-','LineWidth',1.4); grid on;
 xlabel('Ageing level (0-1)'); ylabel('Distance from healthy centroid');
-title('Residual health index versus ageing');
+title('Health index grouped by simulated ageing level');
 localSave(fh,cfg,'13_aging_health_index.png');
 
 % 14. Identity PCA view.
@@ -136,7 +141,8 @@ identityEmbedding = transformIdentityFeatures(identityModel, trainFeatures, ...
 identity2D = localPCA2(identityEmbedding);
 fh = figure('Visible',visible,'Color','w');
 scatter(identity2D(:,1),identity2D(:,2),12,trainIds,'filled'); grid on; colorbar;
-xlabel('PC 1'); ylabel('PC 2'); title('Virtual core clusters in identity feature space');
+xlabel('PC 1'); ylabel('PC 2');
+title('Enrollment samples in identity feature space');
 localSave(fh,cfg,'14_identity_pca.png');
 
 % 15. Before/after separation for health labels.

@@ -193,6 +193,7 @@ TrafoDNA/
 6. PUF-style metrics do not constitute a cryptographic security proof.
 7. The reported V1 values came from one deterministic default configuration and should not be generalized beyond it.
 8. A three-read decision requires three independent acquisitions and must always be reported separately from single-read performance.
+9. Figures 11–13 are grouped-condition diagnostics. Temperature, noise, ageing, and other condition variables vary jointly, so these plots are not controlled one-factor causal sweeps.
 
 See [MODEL.md](MODEL.md) for equations, [docs/BASELINE_ANALYSIS.md](docs/BASELINE_ANALYSIS.md) for the V1/V2 rationale, and [docs/FINAL_HOLDOUT_RESULTS.md](docs/FINAL_HOLDOUT_RESULTS.md) for the first preregistered final result.
 
