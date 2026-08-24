@@ -93,6 +93,17 @@ The default active study uses 20 cores, 18 independent V3 scenarios, 9 complete 
 
 `main_active` does not overwrite the passive `main` results. Active outputs are written under `results_active_v3/`.
 
+## Run the V3.1 capacity development audit
+
+The locked V3 diagnostic found 179 individually eligible raw-bit candidates but retained only 26 after the fixed score-ordered correlation pruning. V3.1 first measures that correlation graph and tests stronger selection strategies without relaxing the 0.80 absolute-correlation limit, changing reliability thresholds, enabling fallback, or using final rows:
+
+```matlab
+addpath(genpath(pwd));
+run_v31_capacity
+```
+
+The audit compares the frozen greedy result with degree-aware, forced-start, seeded multistart, local-improvement, and bounded target-search methods. It reports a development-only lower bound unless the search completes exhaustively. See [docs/V31_CAPACITY_AUDIT.md](docs/V31_CAPACITY_AUDIT.md) for the integrity boundary and interpretation rules.
+
 ## Run a quick study
 
 ```matlab
@@ -147,6 +158,7 @@ The suite checks:
 - finite, seed-reproducible compact active responses;
 - common-gain cancellation in differential challenge coordinates;
 - active partition integrity and complete V3 identity/PUF/final-gate paths.
+- V3.1 capacity reconstruction, final-row exclusion, and independent-set validity.
 
 Passing these tests establishes implementation invariants. It does not replace the full benchmark or experimental validation.
 
@@ -210,11 +222,13 @@ Generated data and figures are ignored by Git; `results/README.md` remains track
 TrafoDNA/
 ├── main.m
 ├── main_active.m
+├── run_v31_capacity.m
 ├── run_tests.m
 ├── README.md
 ├── MODEL.md
 ├── config/
 ├── challenges/
+├── capacity/
 ├── models/
 ├── features/
 ├── dataset/
@@ -226,7 +240,8 @@ TrafoDNA/
 ├── utils/
 ├── docs/
 ├── results/
-└── results_active_v3/
+├── results_active_v3/
+└── results_v31/
 ```
 
 ## Important limitations

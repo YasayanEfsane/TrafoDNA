@@ -309,6 +309,46 @@ assert(height(activeChecks) == 10 && all(isfinite(activeChecks.Current)), ...
 [testNames,passed] = localRecord(testNames,passed, ...
     'active_identity_puf_final_paths');
 
+% 18. V3.1 capacity audit reproduces the strict selector without final rows.
+miniActiveResults.cfg = activeCfg;
+miniActiveResults.features = activeDataset.features;
+miniActiveResults.featureNames = activeDataset.featureNames;
+miniActiveResults.metadata = activeDataset.metadata;
+miniActiveResults.splits = activeSplits;
+miniActiveResults.pufIdentityModel = activePUFIdentityModel;
+miniActiveResults.pufModel = activePUFModel;
+capacityOptions.targetBits = 4;
+capacityOptions.maximumBits = 16;
+capacityOptions.randomStarts = 8;
+capacityOptions.randomDegreeWindow = 1;
+capacityOptions.randomSeed = 24680;
+capacityOptions.exactSearchSeconds = 0;
+capacityOptions.exactSearchNodeLimit = 1000;
+capacityOptions.saveResults = false;
+capacityOptions.verbose = false;
+capacityAudit = analyzeV31Capacity(miniActiveResults,capacityOptions);
+assert(capacityAudit.integrity.finalRowsUsed == 0, ...
+    'The V3.1 capacity audit consumed locked final rows.');
+assert(capacityAudit.integrity.thresholdsReproduced, ...
+    'The V3.1 capacity audit did not reproduce enrollment thresholds.');
+assert(capacityAudit.integrity.frozenSelectionMatches, ...
+    'The V3.1 audit did not reproduce the frozen strict selector.');
+assert(capacityAudit.selection.frozenGreedyCount == ...
+    activePUFModel.numSelectedEligibleBits, ...
+    'The V3.1 frozen-greedy count changed.');
+assert(capacityAudit.selection.bestCount >= ...
+    capacityAudit.selection.frozenGreedyCount, ...
+    'The V3.1 selector regressed below the frozen greedy lower bound.');
+selectedPositions = find(ismember( ...
+    capacityAudit.eligibility.eligibleCandidateIndices, ...
+    capacityAudit.selection.selectedCandidateIndices));
+selectedConflicts = capacityAudit.graph.conflictGraph( ...
+    selectedPositions,selectedPositions);
+assert(nnz(triu(selectedConflicts,1)) == 0, ...
+    'The V3.1 audit retained correlated conflicting bits.');
+[testNames,passed] = localRecord(testNames,passed, ...
+    'v31_capacity_graph_audit');
+
 results.names = testNames(:);
 results.passed = logical(passed(:));
 fprintf('All %d TrafoDNA tests passed.\n',numel(testNames));
