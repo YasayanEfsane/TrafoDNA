@@ -25,13 +25,19 @@ cfg.sensor.pulseDecayS = 1.2e-4;
 
 % Virtual population and memory-aware dataset generation.
 cfg.dataset.numCores = 20;
-cfg.dataset.numConditions = 10;
+cfg.dataset.numConditions = 12;
 cfg.dataset.repetitions = 20;
 cfg.dataset.trainRepeats = 1:12;
 cfg.dataset.validationRepeats = 13:16;
 cfg.dataset.testRepeats = 17:20;
 cfg.dataset.unseenConditionIds = [9 10];
+cfg.dataset.finalHoldoutConditionIds = [11 12];
 cfg.dataset.rawExamplesPerCore = 2;
+if ~isempty(intersect(cfg.dataset.unseenConditionIds, ...
+        cfg.dataset.finalHoldoutConditionIds))
+    error('TrafoDNA:HoldoutOverlap', ...
+        'Development and final holdout condition IDs must be disjoint.');
+end
 cfg.dataset.conditions = localBuildConditions(cfg);
 
 % Event detection and feature extraction.
@@ -73,6 +79,10 @@ cfg.health.varianceToKeep = 0.95;
 cfg.health.maxComponents = 8;
 cfg.health.maxFeatures = 20;
 
+% Multi-read decision protocol. Single-read metrics remain primary and are
+% never overwritten by session-level results.
+cfg.session.readsPerDecision = 3;
+
 % Reproducible V1 benchmark and V2 engineering targets. Targets are
 % acceptance criteria, not hard-coded or claimed results.
 cfg.benchmark.baseline.knownIdentityAccuracy = 0.3516;
@@ -89,6 +99,13 @@ cfg.benchmark.targets.pufReliability = 0.80;
 cfg.benchmark.targets.pufUniquenessRange = [0.35 0.65];
 cfg.benchmark.targets.minimumSelectedBits = 16;
 cfg.benchmark.targets.healthAccuracy = 0.65;
+cfg.benchmark.finalTargets.identityAccuracy = 0.45;
+cfg.benchmark.finalTargets.maximumEER = 0.30;
+cfg.benchmark.finalTargets.pufReliability = 0.80;
+cfg.benchmark.finalTargets.healthAccuracy = 0.65;
+cfg.benchmark.finalTargets.sessionIdentityAccuracy = 0.55;
+cfg.benchmark.finalTargets.maximumSessionEER = 0.25;
+cfg.benchmark.finalTargets.sessionPUFReliability = 0.85;
 
 % Output behavior.
 cfg.runtime.createFigures = true;
@@ -107,11 +124,12 @@ n = cfg.dataset.numConditions;
 template = struct('id', 0, 'temperatureK', 293.15, ...
     'amplitudeScale', 1, 'frequencyScale', 1, 'noiseScale', 1, ...
     'sensorGain', 1, 'stressPa', 0, 'agingLevel', 0, ...
-    'healthState', 'healthy', 'isUnseen', false);
+    'healthState', 'healthy', 'isUnseen', false, 'isFinalHoldout', false);
 conditions = repmat(template, n, 1);
 
 % Rows: temperature [K], amplitude scale, frequency scale, noise scale,
-% gain, stress [Pa], ageing [0,1]. Conditions 9-10 are held out entirely.
+% gain, stress [Pa], ageing [0,1]. Conditions 9-10 are the observed
+% development holdout; conditions 11-12 are preregistered final holdouts.
 design = [ ...
     293.15  1.00  1.00  1.0  1.00   0.0e6  0.00; ...
     303.15  0.95  1.04  1.2  0.98   0.0e6  0.02; ...
@@ -122,7 +140,13 @@ design = [ ...
     328.15  0.97  1.10  1.8  0.97   2.5e6  0.35; ...
     343.15  1.03  0.90  2.0  1.04  -3.0e6  0.60; ...
     353.15  0.88  1.15  2.2  0.95   3.5e6  0.70; ...
-    363.15  1.12  0.85  2.5  1.06  -4.0e6  0.85];
+    363.15  1.12  0.85  2.5  1.06  -4.0e6  0.85; ...
+    288.15  0.90  1.12  2.1  1.05  -3.8e6  0.75; ...
+    348.15  1.10  0.88  2.3  0.96   4.2e6  0.80];
+if n > size(design,1)
+    error('TrafoDNA:ConditionDesignTooShort', ...
+        'The requested condition count exceeds the predefined design.');
+end
 
 for k = 1:n
     conditions(k).id = k;
@@ -143,5 +167,6 @@ for k = 1:n
         conditions(k).healthState = 'combined';
     end
     conditions(k).isUnseen = any(k == cfg.dataset.unseenConditionIds);
+    conditions(k).isFinalHoldout = any(k == cfg.dataset.finalHoldoutConditionIds);
 end
 end

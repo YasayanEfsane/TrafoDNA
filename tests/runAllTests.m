@@ -44,10 +44,11 @@ end
 dataset = generateDataset(cores,cfg);
 splits = splitDataset(dataset.metadata,cfg);
 membership = double(splits.train)+double(splits.validation)+ ...
-    double(splits.test)+double(splits.unseen);
+    double(splits.test)+double(splits.unseen)+double(splits.finalHoldout);
 assert(all(membership <= 1),'Dataset leakage was detected.');
 assert(isempty(intersect(dataset.metadata.SampleId(splits.train), ...
     dataset.metadata.SampleId(splits.test))),'Train/test sample overlap detected.');
+assert(any(splits.finalHoldout),'Final-holdout partition is empty.');
 [testNames,passed] = localRecord(testNames,passed,'partition_leakage');
 
 % 5. Toolbox-free identity path and verification metrics.
@@ -146,6 +147,29 @@ end
 [testNames,passed] = localRecord(testNames,passed, ...
     'condition_holdout_tuning');
 
+% 11. Three-read session and preregistered final-holdout evaluation paths.
+[~,sessionIdentityMetrics] = evaluateIdentitySessions(identityModel, ...
+    dataset.features(splits.unseen,:),dataset.metadata(splits.unseen,:),3);
+[sessionPUFMetrics,sessionInfo] = evaluatePUFSessions(pufModel, ...
+    dataset.features(splits.unseen,:),dataset.metadata(splits.unseen,:),3);
+assert(sessionIdentityMetrics.numSessions == sessionInfo.numSessions, ...
+    'Identity and PUF session counts do not agree.');
+assert(sessionIdentityMetrics.readsPerDecision == 3 && ...
+    sessionPUFMetrics.readsPerDecision == 3, ...
+    'Session evaluation did not preserve the read count.');
+assert(sessionPUFMetrics.reliability >= 0 && sessionPUFMetrics.reliability <= 1, ...
+    'Session PUF reliability is outside [0,1].');
+[finalPrediction,finalConfidence,finalDistances] = predictIdentity(identityModel, ...
+    dataset.features(splits.finalHoldout,:), ...
+    dataset.metadata(splits.finalHoldout,:));
+finalMetrics = computeVerificationMetrics(finalPrediction, ...
+    dataset.metadata.CoreId(splits.finalHoldout),finalConfidence,finalDistances, ...
+    identityModel.coreIds);
+assert(isfinite(finalMetrics.accuracy) && isfinite(finalMetrics.eer), ...
+    'Final-holdout identity metrics are not finite.');
+[testNames,passed] = localRecord(testNames,passed, ...
+    'session_and_final_holdout_paths');
+
 results.names = testNames(:);
 results.passed = logical(passed(:));
 fprintf('All %d TrafoDNA tests passed.\n',numel(testNames));
@@ -153,16 +177,18 @@ end
 
 function cfg = localSmallConfig(cfg)
 cfg.dataset.numCores = 4;
-cfg.dataset.numConditions = 5;
+cfg.dataset.numConditions = 6;
 cfg.dataset.repetitions = 4;
 cfg.dataset.trainRepeats = 1:2;
 cfg.dataset.validationRepeats = 3;
 cfg.dataset.testRepeats = 4;
 cfg.dataset.unseenConditionIds = 5;
+cfg.dataset.finalHoldoutConditionIds = 6;
 cfg.dataset.rawExamplesPerCore = 1;
-cfg.dataset.conditions = cfg.dataset.conditions(1:5);
+cfg.dataset.conditions = cfg.dataset.conditions(1:6);
 for k = 1:numel(cfg.dataset.conditions)
     cfg.dataset.conditions(k).isUnseen = (k == 5);
+    cfg.dataset.conditions(k).isFinalHoldout = (k == 6);
 end
 cfg.signal.sampleRateHz = 2.5e4;
 cfg.signal.cycles = 1;

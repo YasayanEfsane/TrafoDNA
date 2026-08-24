@@ -66,3 +66,29 @@ Relative to V1, known-condition accuracy improved by 16.25 percentage points, un
 The response also reached the exact 48-bit maximum. Code review showed that V2.0 ranked eligible bits first but continued filling from all balanced candidates until the maximum was reached. V2.1 stops after the eligible set and uses validation-screened backups only when required to reach 16 bits.
 
 V2.1 therefore adds leave-one-condition-out hyperparameter tuning, a training-only within-core nuisance projection, and PUF screening by validation and worst-known-condition reliability. These changes are responses to the V2.0 evidence; the V2.0 test and unseen-condition values are not used as fitting data.
+
+## V2.1 run and decision boundary
+
+V2.1 produced 51.41% known-condition accuracy, 42.88% development-holdout accuracy, 0.2812 validation EER, 0.3332 development-holdout EER, 0.7598 PUF reliability, 0.7827 PUF validation reliability, 0.7258 worst-known-condition PUF reliability, 0.5263 uniqueness, 16 selected bits, and 77.36% health accuracy. The tuner selected 32 identity features, zero nuisance components, and covariance regularization of 0.05.
+
+The PUF change was directionally useful: reliability increased by 0.0394 while the response contracted from the forced 48-bit maximum to the configured 16-bit minimum. Identity accuracy changed by only 0.13 percentage points, unseen EER worsened by 0.0035, and the nuisance projection was rejected. This indicates that further parameter tuning against conditions 9–10 would mostly optimize against an already observed evaluation set.
+
+Conditions 9–10 are therefore frozen as the development holdout. They are no longer treated as pristine final evidence.
+
+## Preregistered V2.2 evaluation record
+
+Before the first V2.2 run, conditions 11–12 were defined as the final holdout. Neither condition participated in standardization, nuisance regression, condition-holdout tuning, Fisher ranking, identity enrollment, covariance estimation, PUF thresholding, or bit selection. They have since been evaluated and permanently frozen; the first result is recorded in [FINAL_HOLDOUT_RESULTS.md](FINAL_HOLDOUT_RESULTS.md).
+
+The plan also preregistered a three-read session protocol. It does not replace single-read metrics. Identity uses the feature-wise median of three independent measurements; PUF applies enrollment thresholds after taking the median continuous response. The final-holdout targets were fixed before inspection:
+
+| Metric | Target |
+|---|---:|
+| Single-read identity accuracy | at least 45% |
+| Single-read identity EER | at most 0.30 |
+| Single-read PUF reliability | at least 0.80 |
+| Health classification accuracy | at least 65% |
+| Three-read identity accuracy | at least 55% |
+| Three-read identity EER | at most 0.25 |
+| Three-read PUF reliability | at least 0.85 |
+
+The first V2.2 final-holdout run was required to be recorded regardless of outcome and is now locked in the result document. No threshold or algorithm may be revised and then presented against conditions 11–12 as unbiased evidence.
