@@ -1,6 +1,6 @@
 function checks = evaluateFinalHoldoutChecks(identityMetrics,pufMetrics, ...
     healthMetrics,sessionIdentityMetrics,sessionPUFMetrics,cfg)
-%EVALUATEFINALHOLDOUTCHECKS Apply preregistered gates to untouched conditions.
+%EVALUATEFINALHOLDOUTCHECKS Apply preregistered gates to final conditions.
 
 targets = cfg.benchmark.finalTargets;
 metric = {'Single-read identity accuracy';'Single-read identity EER'; ...

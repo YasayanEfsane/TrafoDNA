@@ -12,7 +12,7 @@ TrafoDNA is a MATLAB-only numerical feasibility study for transformer-core ident
 
 ## Current status
 
-The unchanged V1 baseline is preserved on `main`. The default-seed run reported:
+The V1 benchmark is preserved as a documented reference. The merged `main` branch contains V2.1, and the default-seed runs reported:
 
 | Metric | V1 | V2.0 | V2.1 | Engineering target |
 |---|---:|---:|---:|---:|
@@ -24,7 +24,7 @@ The unchanged V1 baseline is preserved on `main`. The default-seed run reported:
 | Selected stable bits | 8 | 48 | 16 | at least 16 |
 | Health classification accuracy | 67.43% | 77.36% | 77.36% | at least 65% |
 
-V2.1 still passed four of seven single-read gates. It improved PUF reliability and corrected the forced 48-bit response, while identity generalization remained effectively unchanged. Conditions 9–10 have now been observed repeatedly and are frozen as a development holdout. V2.2 preregisters untouched conditions 11–12 as the final holdout before their results are inspected. These targets remain engineering criteria, not experimental claims.
+V2.1 still passed four of seven single-read gates. It improved PUF reliability and corrected the forced 48-bit response, while identity generalization remained effectively unchanged. Conditions 9–10 have now been observed repeatedly and are frozen as a development holdout. V2.2 preregistered conditions 11–12 and seven final gates before the first inspection; that first evaluation is now locked below. These targets remain engineering criteria, not experimental claims.
 
 ### First V2.2 final-holdout result
 
@@ -44,7 +44,7 @@ Conditions 11–12 are now observed and permanently frozen. They must not be des
 - Screens bits using enrollment reliability, validation reliability, worst-known-condition reliability, population balance, threshold margin, and reference correlation.
 - Stops at the stable candidate count instead of always filling the response to its configured maximum.
 - Preserves every single-read result and adds a separate three-read session decision based on median features or median continuous PUF responses.
-- Freezes conditions 9–10 as development evidence and adds conditions 11–12 as an untouched final holdout.
+- Freezes conditions 9–10 as development evidence and adds conditions 11–12 as a preregistered final-holdout partition.
 - Applies seven preregistered final-holdout checks without using those observations for fitting or tuning.
 - Applies supervised feature filtering before residual health PCA.
 - Writes a benchmark CSV that compares every new run with V1 and the V2 targets.
@@ -131,7 +131,7 @@ Passing these tests establishes implementation invariants. It does not replace t
 3. `generateExcitation` generates sinusoidal, triangular, or trapezoidal `H(t)`.
 4. `simulateBarkhausen` generates phase-coupled avalanche events and pickup voltage.
 5. `extractFeatures` computes time, event, spectrum, phase, and Haar descriptors.
-6. `splitDataset` separates repeat groups, the development holdout, and the untouched final holdout.
+6. `splitDataset` separates repeat groups, the development holdout, and the preregistered final-holdout partition.
 7. `tuneIdentityModel` selects a condition-robust centroid model on validation data.
 8. `generateBinaryFingerprint` enrolls decorrelated stable differential bits.
 9. `separateIdentityAndHealth` removes core centroids and learns health coordinates.

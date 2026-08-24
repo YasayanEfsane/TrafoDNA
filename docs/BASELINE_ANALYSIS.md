@@ -75,11 +75,11 @@ The PUF change was directionally useful: reliability increased by 0.0394 while t
 
 Conditions 9–10 are therefore frozen as the development holdout. They are no longer treated as pristine final evidence.
 
-## Preregistered V2.2 evaluation
+## Preregistered V2.2 evaluation record
 
-Before running V2.2, conditions 11–12 are defined as the untouched final holdout. Neither condition participates in standardization, nuisance regression, condition-holdout tuning, Fisher ranking, identity enrollment, covariance estimation, PUF thresholding, or bit selection.
+Before the first V2.2 run, conditions 11–12 were defined as the final holdout. Neither condition participated in standardization, nuisance regression, condition-holdout tuning, Fisher ranking, identity enrollment, covariance estimation, PUF thresholding, or bit selection. They have since been evaluated and permanently frozen; the first result is recorded in [FINAL_HOLDOUT_RESULTS.md](FINAL_HOLDOUT_RESULTS.md).
 
-V2.2 also preregisters a three-read session protocol. It does not replace single-read metrics. Identity uses the feature-wise median of three independent measurements; PUF applies enrollment thresholds after taking the median continuous response. The final-holdout targets are fixed before inspection:
+The plan also preregistered a three-read session protocol. It does not replace single-read metrics. Identity uses the feature-wise median of three independent measurements; PUF applies enrollment thresholds after taking the median continuous response. The final-holdout targets were fixed before inspection:
 
 | Metric | Target |
 |---|---:|
@@ -91,4 +91,4 @@ V2.2 also preregisters a three-read session protocol. It does not replace single
 | Three-read identity EER | at most 0.25 |
 | Three-read PUF reliability | at least 0.85 |
 
-The first V2.2 final-holdout run must be recorded regardless of outcome. No threshold or algorithm may be revised and then presented as if conditions 11–12 were still untouched.
+The first V2.2 final-holdout run was required to be recorded regardless of outcome and is now locked in the result document. No threshold or algorithm may be revised and then presented against conditions 11–12 as unbiased evidence.

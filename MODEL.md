@@ -207,7 +207,7 @@ Training health labels provide a Fisher ranking that removes residual dimensions
 
 ## 14. Multi-read session protocol
 
-Single-read performance remains the primary diagnostic. V2.2 additionally defines a three-read operational decision before inspecting the final holdout. Consecutive measurements from one presented core under one condition form a session; incomplete trailing groups are excluded and counted.
+Single-read performance remains the primary diagnostic. V2.2 defined its three-read operational decision before the first final-holdout run. Consecutive measurements from one presented core under one condition form a session; incomplete trailing groups are excluded and counted.
 
 Identity sessions take the feature-wise median of the three reads and apply the unchanged fitted identity transform. PUF sessions take the median of each continuous selected response before applying the enrollment threshold. No vote uses the true core label. `CoreId` is used only to reconstruct which simulated acquisitions belong to the same presented device and to score the final decision.
 
