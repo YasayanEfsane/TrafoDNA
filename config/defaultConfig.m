@@ -40,19 +40,49 @@ cfg.features.minEventDistanceS = 5.0e-5;
 cfg.features.envelopeWindowS = 3.0e-4;
 cfg.features.bandEdgesFractionNyquist = [0 0.15 0.35 0.65 1.0];
 cfg.features.haarLevels = 4;
+cfg.features.phaseBins = 12;
 
 % Identity model.
 cfg.identity.method = 'mahalanobis'; % mahalanobis | euclidean
-cfg.identity.covarianceRegularization = 5.0e-2;
+cfg.identity.covarianceRegularization = 0.25;
+cfg.identity.covarianceRegularizationGrid = [0.10 0.25 0.50 0.75];
+cfg.identity.maxFeatures = 24;
+cfg.identity.featureCountGrid = [12 18 24 32];
+cfg.identity.validationEERWeight = 0.20;
+cfg.identity.removeOperatingConditionEffects = true;
+cfg.identity.nuisanceVariables = {'TemperatureK','ExcitationAmplitudeAm', ...
+    'ExcitationFrequencyHz','NoiseStdV','SensorGain'};
+cfg.identity.nuisanceRidge = 0.05;
 cfg.identity.useSVMWhenAvailable = false;
 
 % Binary magnetic fingerprint (PUF-style) settings.
-cfg.puf.minimumBitReliability = 0.75;
-cfg.puf.minimumSelectedBits = 8;
+cfg.puf.minimumBitReliability = 0.82;
+cfg.puf.minimumSelectedBits = 16;
+cfg.puf.maximumSelectedBits = 48;
+cfg.puf.bitAliasRange = [0.15 0.85];
+cfg.puf.maximumReferenceCorrelation = 0.85;
 
 % Identity/health separation.
 cfg.health.varianceToKeep = 0.95;
 cfg.health.maxComponents = 8;
+cfg.health.maxFeatures = 20;
+
+% Reproducible V1 benchmark and V2 engineering targets. Targets are
+% acceptance criteria, not hard-coded or claimed results.
+cfg.benchmark.baseline.knownIdentityAccuracy = 0.3516;
+cfg.benchmark.baseline.unseenIdentityAccuracy = 0.3338;
+cfg.benchmark.baseline.unseenEER = 0.3542;
+cfg.benchmark.baseline.pufReliability = 0.6952;
+cfg.benchmark.baseline.pufUniqueness = 0.5263;
+cfg.benchmark.baseline.selectedBits = 8;
+cfg.benchmark.baseline.healthAccuracy = 0.6743;
+cfg.benchmark.targets.knownIdentityAccuracy = 0.50;
+cfg.benchmark.targets.unseenIdentityAccuracy = 0.45;
+cfg.benchmark.targets.maximumUnseenEER = 0.30;
+cfg.benchmark.targets.pufReliability = 0.80;
+cfg.benchmark.targets.pufUniquenessRange = [0.35 0.65];
+cfg.benchmark.targets.minimumSelectedBits = 16;
+cfg.benchmark.targets.healthAccuracy = 0.65;
 
 % Output behavior.
 cfg.runtime.createFigures = true;

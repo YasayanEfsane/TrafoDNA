@@ -52,10 +52,10 @@ assert(isempty(intersect(dataset.metadata.SampleId(splits.train), ...
 
 % 5. Toolbox-free identity path and verification metrics.
 identityModel = trainIdentityModel(dataset.features(splits.train,:), ...
-    dataset.metadata.CoreId(splits.train),cfg);
+    dataset.metadata.CoreId(splits.train),dataset.metadata(splits.train,:),cfg);
 assert(~identityModel.svmAvailable,'Fallback test unexpectedly trained an SVM.');
 [prediction,confidence,distances] = predictIdentity(identityModel, ...
-    dataset.features(splits.test,:));
+    dataset.features(splits.test,:),dataset.metadata(splits.test,:));
 metrics = computeVerificationMetrics(prediction,dataset.metadata.CoreId(splits.test), ...
     confidence,distances,identityModel.coreIds);
 assert(all(metrics.far >= 0 & metrics.far <= 1),'FAR is outside [0,1].');
@@ -71,15 +71,49 @@ assert(eerResult.eer <= 0.05,'EER calculation failed on separated scores.');
 
 % 7. PUF path and bounded metrics.
 pufModel = generateBinaryFingerprint(dataset.features(splits.train,:), ...
-    dataset.metadata.CoreId(splits.train),cfg);
+    dataset.metadata.CoreId(splits.train),cfg,identityModel, ...
+    dataset.metadata(splits.train,:));
 pufMetrics = evaluatePUF(pufModel,dataset.features(splits.test,:), ...
-    dataset.metadata.CoreId(splits.test));
+    dataset.metadata.CoreId(splits.test),dataset.metadata(splits.test,:));
 assert(pufMetrics.reliability >= 0 && pufMetrics.reliability <= 1, ...
     'PUF reliability is outside [0,1].');
 assert(pufMetrics.uniqueness >= 0 && pufMetrics.uniqueness <= 1, ...
     'PUF uniqueness is outside [0,1].');
-assert(pufMetrics.numSelectedBits >= 1,'No fingerprint bits were selected.');
+assert(pufMetrics.numSelectedBits >= cfg.puf.minimumSelectedBits, ...
+    'The configured minimum number of fingerprint bits was not selected.');
 [testNames,passed] = localRecord(testNames,passed,'puf_metrics');
+
+% 8. Fitted identity transform must be finite, dimensionally stable, and use
+% only the explicitly configured measurable nuisance variables.
+identityEmbedding = transformIdentityFeatures(identityModel, ...
+    dataset.features(splits.test,:),dataset.metadata(splits.test,:));
+assert(size(identityEmbedding,1) == sum(splits.test), ...
+    'Identity transform changed the sample count.');
+assert(size(identityEmbedding,2) == numel(identityModel.selectedFeatures), ...
+    'Identity transform changed the selected feature count.');
+assert(all(isfinite(identityEmbedding(:))), ...
+    'Identity embedding contains NaN or Inf.');
+assert(~any(strcmp(identityModel.conditionNormalizer.variableNames,'StressPa')) && ...
+    ~any(strcmp(identityModel.conditionNormalizer.variableNames,'AgingLevel')), ...
+    'Health variables leaked into the identity nuisance transform.');
+[testNames,passed] = localRecord(testNames,passed,'condition_transform_contract');
+
+% 9. Synthetic extrapolation test for a removable operating-condition shift.
+[syntheticTrain,syntheticTrainIds,syntheticTrainMetadata, ...
+    syntheticTest,syntheticTestIds,syntheticTestMetadata] = ...
+    localSyntheticConditionData();
+syntheticCfg = cfg;
+syntheticCfg.identity.maxFeatures = size(syntheticTrain,2);
+syntheticCfg.identity.nuisanceRidge = 0;
+syntheticCfg.identity.covarianceRegularization = 0.50;
+syntheticModel = trainIdentityModel(syntheticTrain,syntheticTrainIds, ...
+    syntheticTrainMetadata,syntheticCfg);
+syntheticPrediction = predictIdentity(syntheticModel,syntheticTest, ...
+    syntheticTestMetadata);
+assert(mean(syntheticPrediction == syntheticTestIds) >= 0.95, ...
+    'Condition residualization failed the synthetic unseen-shift test.');
+[testNames,passed] = localRecord(testNames,passed, ...
+    'synthetic_unseen_condition_robustness');
 
 results.names = testNames(:);
 results.passed = logical(passed(:));
@@ -113,4 +147,64 @@ function [names,passed] = localRecord(names,passed,name)
 names{end+1} = name;
 passed(end+1) = true;
 fprintf('  PASS: %s\n',name);
+end
+
+function [trainFeatures,trainIds,trainMetadata,testFeatures,testIds,testMetadata] = ...
+    localSyntheticConditionData()
+templates = [ ...
+    -1.5 -0.8  0.4  1.0 -0.6  0.2; ...
+    -0.5  0.8 -1.0  0.3  1.1 -0.4; ...
+     0.7 -1.1  0.9 -0.5  0.2  1.2; ...
+     1.5  0.4 -0.2 -1.0 -0.8 -1.1];
+conditionDirection = [1.2 -0.9 0.8 1.1 -0.7 0.6];
+trainConditions = [-1 0 1];
+testCondition = 2.2;
+repetitions = 3;
+
+trainCount = size(templates,1)*numel(trainConditions)*repetitions;
+trainFeatures = zeros(trainCount,size(templates,2));
+trainIds = zeros(trainCount,1);
+trainConditionValue = zeros(trainCount,1);
+row = 0;
+for core = 1:size(templates,1)
+    for condition = trainConditions
+        for repetition = 1:repetitions
+            row = row+1;
+            deterministicNoise = 0.005*sin((1:size(templates,2))*(row+repetition));
+            trainFeatures(row,:) = templates(core,:) + ...
+                condition*conditionDirection + deterministicNoise;
+            trainIds(row) = core;
+            trainConditionValue(row) = condition;
+        end
+    end
+end
+
+testCount = size(templates,1)*repetitions;
+testFeatures = zeros(testCount,size(templates,2));
+testIds = zeros(testCount,1);
+testConditionValue = testCondition*ones(testCount,1);
+row = 0;
+for core = 1:size(templates,1)
+    for repetition = 1:repetitions
+        row = row+1;
+        deterministicNoise = 0.005*cos((1:size(templates,2))*(row+repetition));
+        testFeatures(row,:) = templates(core,:) + ...
+            testCondition*conditionDirection + deterministicNoise;
+        testIds(row) = core;
+    end
+end
+
+trainMetadata = localSyntheticMetadata(trainConditionValue);
+testMetadata = localSyntheticMetadata(testConditionValue);
+end
+
+function metadata = localSyntheticMetadata(conditionValue)
+count = numel(conditionValue);
+TemperatureK = 293.15 + 10*conditionValue;
+ExcitationAmplitudeAm = 120*ones(count,1);
+ExcitationFrequencyHz = 50*ones(count,1);
+NoiseStdV = 2e-5*ones(count,1);
+SensorGain = ones(count,1);
+metadata = table(TemperatureK,ExcitationAmplitudeAm,ExcitationFrequencyHz, ...
+    NoiseStdV,SensorGain);
 end

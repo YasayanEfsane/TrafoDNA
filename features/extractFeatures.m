@@ -66,6 +66,23 @@ totalTimeEnergy = sum(x.^2);
 positiveEnergyRatio = sum(x(H >= 0).^2) / max(totalTimeEnergy, eps);
 negativeEnergyRatio = sum(x(H < 0).^2) / max(totalTimeEnergy, eps);
 
+% Phase-synchronous descriptors preserve the repeatable microstructural
+% modulation that is otherwise lost in whole-waveform summary statistics.
+numPhaseBins = max(4, round(cfg.features.phaseBins));
+phase = mod(excitation.phase(:), 2*pi);
+phaseBin = min(floor(phase * numPhaseBins / (2*pi)) + 1, numPhaseBins);
+phaseEnergyRatio = zeros(1, numPhaseBins);
+phaseEventRatio = zeros(1, numPhaseBins);
+for bin = 1:numPhaseBins
+    phaseEnergyRatio(bin) = sum(x(phaseBin == bin).^2) / max(totalTimeEnergy, eps);
+end
+if eventCount > 0
+    eventBins = phaseBin(events.indices);
+    for bin = 1:numPhaseBins
+        phaseEventRatio(bin) = sum(eventBins == bin) / eventCount;
+    end
+end
+
 windowLength = max(3, round(cfg.features.envelopeWindowS * fs));
 envelope = conv(abs(x), ones(windowLength,1)/windowLength, 'same');
 activeEnvelope = find(envelope >= 0.5 * max(envelope));
@@ -75,21 +92,37 @@ else
     envelopeWidthS = (activeEnvelope(end)-activeEnvelope(1)) / fs;
 end
 
+eventCountPerCycle = eventCount / max(cfg.signal.cycles, eps);
+eventAmplitudeRmsRatio = meanEventAmplitude / max(signalRms, eps);
+eventPeakToMeanRatio = maxEventAmplitude / max(meanEventAmplitude, eps);
+spectralCentroidNormalized = spectralCentroid / max(fs/2, eps);
+spectralBandwidthNormalized = spectralBandwidth / max(fs/2, eps);
+envelopeWidthCycles = envelopeWidthS * excitation.frequencyHz;
+
 [haarEnergy, haarNames] = customHaarFeatures(x, cfg.features.haarLevels);
 bandNames = arrayfun(@(k) sprintf('bandEnergyRatio%d', k), ...
     1:numel(bandEnergy), 'UniformOutput', false);
+phaseEventNames = arrayfun(@(k) sprintf('phaseEventRatio%02d', k), ...
+    1:numPhaseBins, 'UniformOutput', false);
+phaseEnergyNames = arrayfun(@(k) sprintf('phaseEnergyRatio%02d', k), ...
+    1:numPhaseBins, 'UniformOutput', false);
 
 featureVector = [signalRms peakValue crestFactor skewnessValue kurtosisValue ...
     zeroCrossingRate eventCount meanEventAmplitude maxEventAmplitude ...
-    meanEventInterval stdEventInterval spectralCentroid spectralBandwidth ...
-    spectralEntropy bandEnergy positiveEnergyRatio negativeEnergyRatio ...
-    envelopeWidthS haarEnergy];
+    meanEventInterval stdEventInterval eventCountPerCycle eventAmplitudeRmsRatio ...
+    eventPeakToMeanRatio spectralCentroid spectralBandwidth ...
+    spectralCentroidNormalized spectralBandwidthNormalized spectralEntropy ...
+    bandEnergy positiveEnergyRatio negativeEnergyRatio phaseEventRatio ...
+    phaseEnergyRatio envelopeWidthS envelopeWidthCycles haarEnergy];
 
 featureNames = [{'signalRmsV','peakAbsoluteV','crestFactor','skewness','kurtosis', ...
     'zeroCrossingRate','eventCount','meanEventAmplitudeV','maxEventAmplitudeV', ...
-    'meanEventIntervalS','stdEventIntervalS','spectralCentroidHz', ...
-    'spectralBandwidthHz','spectralEntropy'}, bandNames, ...
-    {'positiveHalfEnergyRatio','negativeHalfEnergyRatio','envelopeWidthS'}, haarNames];
+    'meanEventIntervalS','stdEventIntervalS','eventCountPerCycle', ...
+    'eventAmplitudeRmsRatio','eventPeakToMeanRatio','spectralCentroidHz', ...
+    'spectralBandwidthHz','spectralCentroidNormalized', ...
+    'spectralBandwidthNormalized','spectralEntropy'}, bandNames, ...
+    {'positiveHalfEnergyRatio','negativeHalfEnergyRatio'}, phaseEventNames, ...
+    phaseEnergyNames, {'envelopeWidthS','envelopeWidthCycles'}, haarNames];
 
 featureVector(~isfinite(featureVector)) = 0;
 diagnostics.events = events;

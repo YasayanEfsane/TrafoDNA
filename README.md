@@ -1,56 +1,67 @@
 # TrafoDNA
 
-**Stokastik Barkhausen Gürültüsü Kullanılarak Transformatör Nüvelerinin Sanal Manyetik Parmak İziyle Tanımlanması**
+**Virtual magnetic fingerprinting of transformer cores from stochastic Barkhausen noise**
 
-TrafoDNA, aynı nominal özelliklere sahip transformatör nüvelerindeki mikroyapısal farklılıkların Barkhausen gürültüsü üzerinden sanal bir kimlik oluşturup oluşturamayacağını araştıran, yalnızca MATLAB ile çalışan sayısal bir fizibilite projesidir. Proje ayrıca nüve kimliğini sıcaklık, mekanik stres ve termal yaşlanma değişimlerinden ayırmayı dener.
+TrafoDNA is a MATLAB-only numerical feasibility study for transformer-core identification, PUF-style fingerprinting, and health monitoring. It asks whether nominally identical transformer cores can retain distinguishable Barkhausen signatures under changing temperature, excitation, sensor, stress, and ageing conditions.
 
-> **Bilimsel sınır:** Bu çalışma fiziksel ölçüm veya deneysel doğrulama içermez. Üretilen sinyaller fiziksel olarak yorumlanabilir fakat indirgenmiş stokastik bir modelden gelir. Sonuçlar gerçek transformatör performansı olarak sunulmamalıdır.
+> **Scientific boundary:** TrafoDNA contains no physical measurements or experimental validation. Its waveforms come from an interpretable but reduced stochastic model. Numerical separation in this repository is not evidence that real transformer cores will achieve the same performance.
 
-## Araştırma hipotezi
+## Research question
 
-> Aynı nominal özelliklere sahip transformatör nüvelerinde mikroyapısal farklılıklardan kaynaklanan stokastik Barkhausen sinyalleri, değişken çalışma koşulları altında güvenilir bir sanal manyetik parmak izi oluşturabilir mi ve bu kimlik bilgisi nüvenin sağlık değişimlerinden ayrıştırılabilir mi?
+> Can manufacturing-scale microstructural differences produce a repeatable virtual magnetic fingerprint, and can that identity be separated from operating-condition and health changes?
 
-## Temel yaklaşım
+## Current status
 
-Barkhausen etkisi, ferromanyetik malzemedeki domain duvarlarının dış manyetik alan altında sürekli değil, kesikli sıçramalarla hareket etmesinden kaynaklanır. TrafoDNA'da olay yoğunluğu:
+The unchanged V1 baseline is preserved on `main`. The default-seed run reported:
 
-- manyetik alanın etkin koersivite çevresindeki konumuna,
-- alanın değişim hızına `dH/dt`,
-- domain-pinning yoğunluğuna,
-- mikroyapısal düzensizliğe,
-- domain etkileşimine,
-- sıcaklığa, mekanik strese ve yaşlanmaya
+| Metric | V1 result | V2 engineering target |
+|---|---:|---:|
+| Known-condition identity accuracy | 35.16% | at least 50% |
+| Unseen-condition identity accuracy | 33.38% | at least 45% |
+| Unseen-condition EER | 0.3542 | at most 0.30 |
+| PUF reliability | 0.6952 | at least 0.80 |
+| PUF uniqueness | 0.5263 | 0.35 to 0.65 |
+| Selected stable bits | 8 | at least 16 |
+| Health classification accuracy | 67.43% | at least 65% |
 
-bağlanır. Her sanal nüve sabit bir mikroyapısal parametre takımı taşır. Ölçüm tekrarı değiştiğinde bu kimlik parametreleri korunur; yalnızca stokastik olay gerçekleşmeleri ve ölçüm gürültüsü yeniden üretilir.
+These targets are executable acceptance criteria, not claimed results. Run the improved branch in MATLAB to determine which gates pass. The V1 label “validation EER” was misleading: the printed value was taken from the unseen-condition metrics. V2 prints validation and unseen-condition EER separately.
 
-Model ABBM yaklaşımından esinlenmiştir; tam bir mikromanyetik veya sonlu eleman çözümü değildir. Denklemler ve kabuller [MODEL.md](MODEL.md) içinde açıklanmıştır.
+## What V2 changes
 
-## Gereksinimler
+- Adds 12-bin phase-synchronous event and energy descriptors so the fixed microstructural phase pattern is not collapsed into two half-cycle values.
+- Removes measurable temperature, excitation, noise, and sensor-gain effects with a ridge model fitted only on enrollment data.
+- Excludes stress, ageing, health labels, and core identity from that nuisance model.
+- Selects identity dimensions with a training-only Fisher score.
+- Tunes feature count and covariance shrinkage on validation data only.
+- Builds PUF candidates from unary identity coordinates and pairwise coordinate differences.
+- Selects bits using repeat reliability, population balance, threshold margin, and reference correlation.
+- Applies supervised feature filtering before residual health PCA.
+- Writes a benchmark CSV that compares every new run with V1 and the V2 targets.
+- Adds algorithmic regression tests in addition to structural checks.
 
-- MATLAB R2020b veya daha yeni bir sürüm önerilir.
-- Temel çalışma yolu özel toolbox gerektirmez.
-- Statistics and Machine Learning Toolbox bulunursa isteğe bağlı ECOC-SVM eğitilebilir; varsayılan olarak kapalıdır.
-- Simulink, Python, harici veri kümesi ve fiziksel donanım kullanılmaz.
+No physical simulator parameter was changed merely to inflate identification scores.
 
-## Çalıştırma
+## Requirements
 
-MATLAB'da proje klasörünü açıp aşağıdaki komutları çalıştırın:
+- MATLAB R2020b or newer is recommended.
+- The default path uses base MATLAB only.
+- Statistics and Machine Learning Toolbox is optional. An ECOC-SVM experiment is available but disabled by default.
+- Simulink, Python, external datasets, and hardware are not required.
+
+## Run the full experiment
+
+Open the repository root in MATLAB:
 
 ```matlab
 addpath(genpath(pwd));
 results = main();
 ```
 
-Varsayılan deney:
+The default study generates 20 virtual cores, 10 operating conditions, 20 repetitions per condition, and 4,000 feature records. Raw waveforms are streamed: only a small configured subset is retained for plotting.
 
-- 20 sanal nüve,
-- 10 çalışma koşulu,
-- koşul başına 20 tekrar,
-- toplam 4000 Barkhausen örneği
+The summary reports actual computed values, the selected identity-model settings, and the number of V2 acceptance gates passed.
 
-üretir. Ham sinyallerin tamamı bellekte tutulmaz. Her sinyal oluşturulduktan sonra özellikleri çıkarılır; yalnızca görselleştirme için seçilmiş az sayıda ham kayıt saklanır.
-
-### Hızlı deneme
+## Run a quick study
 
 ```matlab
 addpath(genpath(pwd));
@@ -69,114 +80,69 @@ end
 results = main(cfg);
 ```
 
-## Otomatik testler
+Quick studies validate the pipeline but are not comparable with the default V1 benchmark because their population and measurement counts differ.
+
+## Tests
 
 ```matlab
 run_tests
 ```
 
-veya:
+or:
 
 ```matlab
 testResults = runAllTests();
 ```
 
-Testler şunları denetler:
+The suite checks:
 
-- aynı seed ile birebir aynı sinyalin oluşması,
-- farklı nüvelerin farklı sabit parametreler alması,
-- sinyal ve özelliklerde `NaN`/`Inf` bulunmaması,
-- özellik boyutlarının tutarlılığı,
-- eğitim/doğrulama/test/görülmeyen koşul kümelerinin çakışmaması,
-- toolbox'sız kimlik modelinin çalışması,
-- FAR ve FRR sınırları,
-- EER hesabı,
-- intra-core mesafelerin genel olarak inter-core mesafelerden küçük olması,
-- PUF ölçütlerinin geçerli aralıkta olması.
+- exact seed reproducibility;
+- distinct fixed parameters for different cores;
+- finite signals and stable feature dimensions;
+- disjoint train, validation, test, and unseen-condition partitions;
+- toolbox-free identity inference and valid verification metrics;
+- EER behavior on separated synthetic scores;
+- valid PUF metrics and the configured minimum bit count;
+- the identity-transform contract and exclusion of health variables;
+- synthetic extrapolation across an unseen removable condition shift.
 
-## Proje akışı
+Passing these tests establishes implementation invariants. It does not replace the full benchmark or experimental validation.
 
-1. `defaultConfig` bütün fiziksel ve sayısal ayarları oluşturur.
-2. `createVirtualCore` nüveye özgü sabit mikroyapısal parametreleri üretir.
-3. `generateExcitation` sinüs, üçgen veya trapez `H(t)` alanını oluşturur.
-4. `simulateBarkhausen` faza bağlı avalanche olaylarını ve pickup gerilimini üretir.
-5. `extractFeatures` zaman, olay, spektrum, faz ve Haar özelliklerini çıkarır.
-6. `splitDataset` tekrar gruplarını ve tamamen görülmeyen koşulları ayırır.
-7. Kimlik modeli Öklid veya düzenlenmiş Mahalanobis uzaklığıyla çalışır.
-8. PUF aşaması kararsız bitleri enrollment verisinden eler.
-9. Sağlık modeli, her nüvenin centroid'ini çıkardıktan sonra residual PCA uygular.
-10. Performans ölçütleri, CSV/MAT sonuçları ve 16 grafik üretilir.
+## Model pipeline
 
-## Çıkarılan özellikler
+1. `defaultConfig` defines numerical, physical, split, and acceptance settings.
+2. `createVirtualCore` samples a fixed latent microstructural identity.
+3. `generateExcitation` generates sinusoidal, triangular, or trapezoidal `H(t)`.
+4. `simulateBarkhausen` generates phase-coupled avalanche events and pickup voltage.
+5. `extractFeatures` computes time, event, spectrum, phase, and Haar descriptors.
+6. `splitDataset` holds out repeat groups and entire operating conditions.
+7. `tuneIdentityModel` selects a condition-robust centroid model on validation data.
+8. `generateBinaryFingerprint` enrolls decorrelated stable differential bits.
+9. `separateIdentityAndHealth` removes core centroids and learns health coordinates.
+10. Evaluation produces metrics, benchmark gates, CSV/MAT outputs, and 16 figures.
 
-- RMS, tepe değer, crest factor
-- skewness, kurtosis ve sıfır geçiş oranı
-- olay sayısı, olay genliği ve olaylar arası zaman istatistikleri
-- spektral merkez, bant genişliği ve spektral entropi
-- dört frekans bandının normalize enerjisi
-- uyarma döngüsünün pozitif/negatif yarı enerji oranları
-- Barkhausen envelope genişliği
-- dört seviye Haar detay enerjisi ve son yaklaşım enerjisi
+## Leakage controls
 
-Haar özellikleri proje içinde yazılmıştır; Wavelet Toolbox gerekmez.
+- Conditions 9 and 10 are absent from enrollment and validation.
+- Repetitions 1–12 train, 13–16 validate, and 17–20 test for known conditions.
+- Standardization, nuisance regression, Fisher ranking, centroids, covariance, and PUF thresholds are fitted on enrollment data only.
+- Only feature count and covariance regularization use validation labels.
+- Test and unseen-condition labels never influence fitting or tuning.
+- The identity nuisance model sees measurable operating variables only; it never sees stress, ageing, health state, or identity labels as predictors.
 
-## Kimlik doğrulama ve PUF ölçütleri
+## Output files
 
-Kimlik modeli aşağıdaki çıktıları üretir:
-
-- identification accuracy,
-- confusion matrix,
-- genuine/impostor mesafe dağılımları,
-- güven skoru,
-- FAR, FRR, ROC ve EER.
-
-İkili parmak izi aşaması ise şunları hesaplar:
-
-- reliability,
-- uniqueness,
-- uniformity,
-- bit aliasing,
-- intra/inter Hamming distance,
-- tahmini min-entropy.
-
-Buradaki “PUF” ifadesi, fiziksel güvenlik iddiası değil, PUF literatüründeki ölçütlerin sanal nüve parmak izlerine uygulanması anlamındadır.
-
-## Kimlik ve sağlık ayrıştırması
-
-Önce bütün özellikler eğitim verisiyle standartlaştırılır. Ardından her nüvenin eğitim centroid'i çıkarılır. Bu işlem nüveye özgü üretim ofsetlerinin büyük kısmını kaldırır. Kalan residual özelliklere PCA uygulanır ve dört sağlık durumu en yakın centroid yöntemiyle değerlendirilir:
-
-- `healthy`
-- `mechanical_stress`
-- `thermal_aging`
-- `combined`
-
-## Üretilen dosyalar
-
-`results/` altında:
+`main` writes the following under `results/` when saving is enabled:
 
 - `trafodna_results.mat`
 - `trafodna_features.csv`
 - `identity_accuracy_by_health.csv`
-- `figures/01_excitation_field.png`
-- `figures/02_barkhausen_signal.png`
-- `figures/03_event_phase_distribution.png`
-- `figures/04_frequency_spectrum.png`
-- `figures/05_same_core_repeats.png`
-- `figures/06_different_cores.png`
-- `figures/07_intra_inter_distances.png`
-- `figures/08_confusion_matrix.png`
-- `figures/09_roc_eer.png`
-- `figures/10_hamming_distances.png`
-- `figures/11_temperature_accuracy.png`
-- `figures/12_noise_accuracy.png`
-- `figures/13_aging_health_index.png`
-- `figures/14_identity_pca.png`
-- `figures/15_identity_health_separation.png`
-- `figures/16_identity_accuracy_by_health.png`
+- `benchmark_comparison.csv`
+- `figures/01_excitation_field.png` through `figures/16_identity_accuracy_by_health.png`
 
-oluşturulur. Başarı değerleri kod içine yazılmamıştır; yalnızca simülasyon çalıştırıldıktan sonra hesaplanır.
+Generated data and figures are ignored by Git; `results/README.md` remains tracked.
 
-## Dizin yapısı
+## Repository layout
 
 ```text
 TrafoDNA/
@@ -194,18 +160,22 @@ TrafoDNA/
 ├── visualization/
 ├── tests/
 ├── utils/
-└── results/figures/
+├── docs/
+└── results/
 ```
 
-## Önemli sınırlamalar
+## Important limitations
 
-1. Model, domain duvarlarını uzaysal olarak çözmez.
-2. Nüve laminasyon geometrisi, tane haritası ve gerçek sensör transfer fonksiyonu doğrudan modellenmez.
-3. Parametre dağılımları literatür-temelli deneysel kalibrasyon yerine makul sayısal aralıklardır.
-4. Modelin ayırt edilebilirlik üretmesi, gerçek nüvelerin aynı doğrulukla ayırt edilebileceği anlamına gelmez.
-5. Simülasyonda kimlik parametreleri ile koşul parametreleri tasarım gereği ayrılmıştır; gerçek dünyada bu ayrım daha karmaşıktır.
-6. Min-entropy sonucu kriptografik güvenlik kanıtı değildir.
+1. The simulator does not spatially solve domains or domain walls.
+2. Lamination geometry, grain maps, flux distribution, and pickup-coil placement are not directly modeled.
+3. Parameter ranges are plausible numerical assumptions, not a calibration to a particular steel grade.
+4. Identity separation in synthetic data does not establish real-world separability.
+5. Operating metadata used by the V2 normalizer must be measured or supplied at inference time.
+6. PUF-style metrics do not constitute a cryptographic security proof.
+7. The reported V1 values came from one deterministic default configuration and should not be generalized beyond it.
 
-## Gerçek ölçüme geçiş
+See [MODEL.md](MODEL.md) for equations and [docs/BASELINE_ANALYSIS.md](docs/BASELINE_ANALYSIS.md) for the V1 diagnosis and V2 rationale.
 
-Gelecekte `simulateBarkhausen` yerine bir veri yükleyici eklenebilir. Gerçek pickup bobini ölçümlerinde her kayıt için `signalV`, `sampleRateHz` ve eşzamanlı `H(t)` sağlanırsa mevcut özellik çıkarımı, kimlik, PUF ve sağlık katmanları korunabilir. Gerçek deneyde sıcaklık, uyarma genliği/frekansı, sensör konumu, sıkma torku ve nüve geçmişi kontrollü biçimde kaydedilmelidir.
+## Path to physical validation
+
+Replace `simulateBarkhausen` with a loader that provides `signalV`, `sampleRateHz`, synchronized `H(t)`, and measurable operating metadata. A physical study should control temperature, excitation amplitude and frequency, sensor placement, clamping torque, acquisition bandwidth, and core history. It should pre-register enrollment/test splits and report confidence intervals across independently manufactured cores.

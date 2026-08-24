@@ -1,0 +1,16 @@
+# MATLAB editor, autosave, and generated binaries
+*.asv
+*.autosave
+*.m~
+*.mex*
+*.slxc
+*.mlappinstall
+
+# Generated experiment outputs
+results/*.mat
+results/*.csv
+results/figures/
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db
