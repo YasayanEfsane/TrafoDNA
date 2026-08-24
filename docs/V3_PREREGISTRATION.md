@@ -2,6 +2,8 @@
 
 ## Status and integrity boundary
 
+> **Post-run status:** The first scenarios 115–118 evaluation passed 9 of 10 gates and returned `NOT SUPPORTED`. These scenarios are now observed. The original protocol below remains unchanged; see [V3_FINAL_RESULTS.md](V3_FINAL_RESULTS.md) for the locked result.
+
 This document defines TrafoDNA V3 before the outputs of active final scenarios 115–118 are inspected. The V2.2 final conditions 11–12 remain an observed historical audit set and are not reused by V3.
 
 During pre-commit design work, a MATLAB-independent shadow implementation evaluated candidate scenarios 111–114 while comparing PUF averaging and nuisance-removal choices. Those scenarios are therefore observed development evidence, not final evidence. They were permanently moved into the development stress set before this preregistration. The replacement final scenarios 115–118 are generated mechanically as Halton points 23–26 in bases 2, 3, 5, 7, 11, and 13; their model outputs have not been evaluated.

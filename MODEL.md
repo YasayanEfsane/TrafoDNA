@@ -254,9 +254,9 @@ Identity and PUF-style enrollment use separate training-only transforms. The ide
 - Scenario IDs 101–108 are known conditions.
 - Scenario IDs 109–114 are the development holdout. IDs 111–114 were
   reclassified before preregistration because a shadow design model used them.
-- Scenario IDs 115–118 are the untouched preregistered final holdout. Their
-  six-dimensional coordinates are Halton points 23–26 in bases
-  2, 3, 5, 7, 11, and 13.
+- Scenario IDs 115–118 were the untouched preregistered final holdout for the
+  first V3 run. Their six-dimensional coordinates are Halton points 23–26 in
+  bases 2, 3, 5, 7, 11, and 13. They are now observed and locked.
 - Sweeps 1–4 enroll, 5–6 validate, and 7–9 test within known scenarios.
 - Stress, ageing, health labels, and core labels are forbidden nuisance predictors.
 - Ten final checks are fixed in `docs/V3_PREREGISTRATION.md`, including a

@@ -6,7 +6,7 @@ function cfg = defaultActiveConfig()
 cfg = defaultConfig();
 cfg.study.name = 'TrafoDNA Active Challenge-Response V3';
 cfg.study.protocolVersion = '3.0.0-preregistered';
-cfg.study.status = 'preregistered_unobserved';
+cfg.study.status = 'observed_locked_9_of_10';
 cfg.rngSeed = 20260825;
 
 % Active magnetic challenge matrix: 3 waveforms x 4 amplitudes x 2 rates.
@@ -109,8 +109,8 @@ function scenarios = localBuildActiveScenarios()
 % Columns are normalized temperature, noise, gain, reset offset, stress,
 % and ageing coordinates. Rows 1-8 are known. Rows 9-14 are development
 % scenarios, including the four pre-freeze shadow-design rows. Rows 15-18
-% are untouched final scenarios generated mechanically from Halton indices
-% 23-26, rather than selected using model output.
+% were generated mechanically from Halton indices 23-26 and formed the
+% first-run final holdout; they are now observed and locked.
 developmentDesign = [ ...
     .0625 .4375 .8125 .3125 .1875 .5625; ...
     .5625 .9375 .3125 .8125 .6875 .0625; ...
