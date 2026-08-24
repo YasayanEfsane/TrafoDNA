@@ -10,6 +10,10 @@ normalized = standardizeFeatures(features, model.featureMean, ...
     model.featureStd, model.activeFeatures);
 residualized = applyOperatingConditionNormalizer( ...
     model.conditionNormalizer, normalized, metadata);
+if isfield(model,'nuisanceBasis') && ~isempty(model.nuisanceBasis)
+    residualized = residualized- ...
+        (residualized*model.nuisanceBasis)*model.nuisanceBasis';
+end
 embedding = residualized(:, model.selectedFeatures);
 embedding(~isfinite(embedding)) = 0;
 end

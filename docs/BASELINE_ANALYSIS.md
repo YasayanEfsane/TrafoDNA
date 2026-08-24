@@ -56,3 +56,13 @@ Failure of a gate is an actionable result, not a reason to hide or overwrite the
 ## Next evidence step
 
 Run the unchanged default seed on the V2 branch, archive `benchmark_comparison.csv`, and inspect per-condition and per-health plots. If gates fail, adjust only training/validation choices or revise the measurement protocol transparently. Do not tune simulator identity strength against test or unseen-condition results.
+
+## First V2.0 run
+
+The first MATLAB run produced 51.41% known-condition accuracy, 42.75% unseen-condition accuracy, 0.2762 validation EER, 0.3297 unseen-condition EER, 0.7204 PUF reliability, 0.5263 uniqueness, 48 selected bits, and 77.36% health accuracy. Four of seven gates passed.
+
+Relative to V1, known-condition accuracy improved by 16.25 percentage points, unseen-condition accuracy by 9.37 points, PUF reliability by 0.0252, and health accuracy by 9.93 points. Unseen EER fell by 0.0245. The larger 8.66-point known/unseen accuracy gap and the 0.0535 validation/unseen EER gap expose remaining domain shift.
+
+The response also reached the exact 48-bit maximum. Code review showed that V2.0 ranked eligible bits first but continued filling from all balanced candidates until the maximum was reached. V2.1 stops after the eligible set and uses validation-screened backups only when required to reach 16 bits.
+
+V2.1 therefore adds leave-one-condition-out hyperparameter tuning, a training-only within-core nuisance projection, and PUF screening by validation and worst-known-condition reliability. These changes are responses to the V2.0 evidence; the V2.0 test and unseen-condition values are not used as fitting data.

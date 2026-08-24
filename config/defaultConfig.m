@@ -45,20 +45,26 @@ cfg.features.phaseBins = 12;
 % Identity model.
 cfg.identity.method = 'mahalanobis'; % mahalanobis | euclidean
 cfg.identity.covarianceRegularization = 0.25;
-cfg.identity.covarianceRegularizationGrid = [0.10 0.25 0.50 0.75];
+cfg.identity.covarianceRegularizationGrid = [0.05 0.10 0.25 0.50];
 cfg.identity.maxFeatures = 24;
-cfg.identity.featureCountGrid = [12 18 24 32];
+cfg.identity.featureCountGrid = [18 24 32];
 cfg.identity.validationEERWeight = 0.20;
+cfg.identity.conditionWorstCaseWeight = 0.30;
+cfg.identity.useConditionHoldoutTuning = true;
 cfg.identity.removeOperatingConditionEffects = true;
 cfg.identity.nuisanceVariables = {'TemperatureK','ExcitationAmplitudeAm', ...
     'ExcitationFrequencyHz','NoiseStdV','SensorGain'};
 cfg.identity.nuisanceRidge = 0.05;
+cfg.identity.nuisanceComponents = 0;
+cfg.identity.nuisanceComponentGrid = [0 2 4];
 cfg.identity.useSVMWhenAvailable = false;
 
 % Binary magnetic fingerprint (PUF-style) settings.
 cfg.puf.minimumBitReliability = 0.82;
+cfg.puf.minimumValidationReliability = 0.80;
+cfg.puf.minimumWorstConditionReliability = 0.72;
 cfg.puf.minimumSelectedBits = 16;
-cfg.puf.maximumSelectedBits = 48;
+cfg.puf.maximumSelectedBits = 32;
 cfg.puf.bitAliasRange = [0.15 0.85];
 cfg.puf.maximumReferenceCorrelation = 0.85;
 

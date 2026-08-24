@@ -141,6 +141,14 @@ R=Z-U\hat B.
 
 Stress, ageing, health labels, and core identities are not predictors in this model. Query-time operating metadata is required when the normalizer is enabled.
 
+V2.1 additionally centers these residuals within each enrolled core and uses SVD to learn dominant within-core nuisance directions `V_q`. Identity features are projected onto their orthogonal complement:
+
+\[
+R_\perp=R(I-V_qV_q^T).
+\]
+
+This learns a shared condition-variation subspace without using stress or health labels. The projection is fixed after enrollment and therefore does not require query-time health metadata.
+
 For each residual dimension, a training-only Fisher score is computed:
 
 \[
@@ -159,7 +167,7 @@ and identity uses Mahalanobis distance
 d_i(x)=\sqrt{(x-\mu_i)^T\Sigma_r^{-1}(x-\mu_i)}.
 \]
 
-Feature count and `α` are selected by maximizing validation accuracy minus a configured EER penalty. Test and unseen-condition data are not used.
+Feature count, `α`, and the number of removed nuisance components are selected with leave-one-condition-out validation. For each fold, one complete known condition is absent from enrollment and is evaluated using its validation repetitions. The objective combines mean condition accuracy, worst-condition accuracy, and mean EER. Test and deliberately unseen conditions are never used.
 
 ## 10. Verification metrics
 
@@ -167,14 +175,15 @@ The genuine score is the distance to the enrolled true-core centroid. Impostor s
 
 ## 11. Differential PUF-style fingerprint
 
-PUF enrollment operates in the fitted identity embedding. Candidate responses include each coordinate `r_j` and each difference `r_j-r_k`. A population median creates each binary threshold. Candidate selection considers:
+PUF enrollment operates in the fitted identity embedding. Candidate responses include each coordinate `r_j` and each difference `r_j-r_k`. Enrollment medians create all binary thresholds and core references. Candidate selection considers:
 
 - mean repeat reliability across enrolled cores;
+- validation-repeat reliability and worst-known-condition reliability;
 - bit aliasing bounds across the population;
 - normalized distance from the threshold;
 - redundancy measured by reference-bit correlation.
 
-The selected reference for each core is the median-enrollment response. Reported metrics include reliability, uniqueness, uniformity, bit aliasing, intra/inter Hamming distances, and a bitwise min-entropy estimate. These are PUF-style diagnostics, not a cryptographic proof.
+Only candidates meeting the stability gates are selected up to the configured maximum. Lower-ranked candidates may be used only to satisfy the minimum response length. The selected reference for each core remains the enrollment median. Reported metrics include reliability, uniqueness, uniformity, bit aliasing, intra/inter Hamming distances, and a bitwise min-entropy estimate. These are PUF-style diagnostics, not a cryptographic proof.
 
 ## 12. Identity/health separation
 

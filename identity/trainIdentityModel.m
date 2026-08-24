@@ -23,6 +23,19 @@ end
     fitOperatingConditionNormalizer(normalized, metadata, cfg);
 labels = unique(coreIds(:))';
 
+% Learn directions that explain repeatable within-core condition variation,
+% then remove them from every identity sample without requiring health labels
+% or query-time health metadata.
+nuisanceComponentCount = 0;
+if isfield(cfg.identity,'nuisanceComponents')
+    nuisanceComponentCount = max(0,round(cfg.identity.nuisanceComponents));
+end
+nuisanceBasis = localFitNuisanceBasis(residualized,coreIds,labels, ...
+    nuisanceComponentCount);
+if ~isempty(nuisanceBasis)
+    residualized = residualized-(residualized*nuisanceBasis)*nuisanceBasis';
+end
+
 % Rank dimensions using training-only between-core to within-core variance.
 globalMean = mean(residualized, 1);
 betweenScatter = zeros(1, size(residualized,2));
@@ -70,6 +83,8 @@ model.featureMean = mu;
 model.featureStd = sigma;
 model.activeFeatures = active;
 model.conditionNormalizer = conditionNormalizer;
+model.nuisanceBasis = nuisanceBasis;
+model.nuisanceComponents = size(nuisanceBasis,2);
 model.fisherScore = fisherScore;
 model.selectedFeatures = selectedFeatures;
 model.coreIds = labels;
@@ -87,5 +102,26 @@ if cfg.identity.useSVMWhenAvailable && exist('fitcecoc','file') == 2
         warning('TrafoDNA:SVMFallback', ...
             'SVM training failed; centroid model retained: %s', svmError.message);
     end
+end
+end
+
+function basis = localFitNuisanceBasis(features,coreIds,labels,requestedCount)
+if requestedCount <= 0
+    basis = zeros(size(features,2),0);
+    return;
+end
+withinCore = zeros(size(features));
+for k = 1:numel(labels)
+    selected = coreIds == labels(k);
+    withinCore(selected,:) = features(selected,:)-mean(features(selected,:),1);
+end
+[~,singularValues,rightVectors] = svd(withinCore,'econ');
+singularMagnitude = diag(singularValues);
+available = sum(singularMagnitude > max(singularMagnitude)*1e-10);
+componentCount = min([requestedCount,available,size(rightVectors,2)]);
+if componentCount <= 0
+    basis = zeros(size(features,2),0);
+else
+    basis = rightVectors(:,1:componentCount);
 end
 end

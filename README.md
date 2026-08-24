@@ -14,27 +14,29 @@ TrafoDNA is a MATLAB-only numerical feasibility study for transformer-core ident
 
 The unchanged V1 baseline is preserved on `main`. The default-seed run reported:
 
-| Metric | V1 result | V2 engineering target |
-|---|---:|---:|
-| Known-condition identity accuracy | 35.16% | at least 50% |
-| Unseen-condition identity accuracy | 33.38% | at least 45% |
-| Unseen-condition EER | 0.3542 | at most 0.30 |
-| PUF reliability | 0.6952 | at least 0.80 |
-| PUF uniqueness | 0.5263 | 0.35 to 0.65 |
-| Selected stable bits | 8 | at least 16 |
-| Health classification accuracy | 67.43% | at least 65% |
+| Metric | V1 result | V2.0 result | V2 engineering target |
+|---|---:|---:|---:|
+| Known-condition identity accuracy | 35.16% | 51.41% | at least 50% |
+| Unseen-condition identity accuracy | 33.38% | 42.75% | at least 45% |
+| Unseen-condition EER | 0.3542 | 0.3297 | at most 0.30 |
+| PUF reliability | 0.6952 | 0.7204 | at least 0.80 |
+| PUF uniqueness | 0.5263 | 0.5263 | 0.35 to 0.65 |
+| Selected stable bits | 8 | 48 | at least 16 |
+| Health classification accuracy | 67.43% | 77.36% | at least 65% |
 
-These targets are executable acceptance criteria, not claimed results. Run the improved branch in MATLAB to determine which gates pass. The V1 label “validation EER” was misleading: the printed value was taken from the unseen-condition metrics. V2 prints validation and unseen-condition EER separately.
+V2.0 passed four of seven gates. V2.1 focuses on the remaining unseen-condition and PUF-reliability gaps. These targets remain engineering criteria, not experimental claims. The V1 label “validation EER” was misleading: the printed value was taken from the unseen-condition metrics. V2 prints validation and unseen-condition EER separately.
 
-## What V2 changes
+## What V2.1 changes
 
 - Adds 12-bin phase-synchronous event and energy descriptors so the fixed microstructural phase pattern is not collapsed into two half-cycle values.
 - Removes measurable temperature, excitation, noise, and sensor-gain effects with a ridge model fitted only on enrollment data.
 - Excludes stress, ageing, health labels, and core identity from that nuisance model.
 - Selects identity dimensions with a training-only Fisher score.
-- Tunes feature count and covariance shrinkage on validation data only.
+- Tunes feature count, covariance shrinkage, and nuisance-subspace size by leaving one complete known condition out at a time.
+- Learns dominant within-core nuisance directions and projects them out without using health labels or query-time health metadata.
 - Builds PUF candidates from unary identity coordinates and pairwise coordinate differences.
-- Selects bits using repeat reliability, population balance, threshold margin, and reference correlation.
+- Screens bits using enrollment reliability, validation reliability, worst-known-condition reliability, population balance, threshold margin, and reference correlation.
+- Stops at the stable candidate count instead of always filling the response to its configured maximum.
 - Applies supervised feature filtering before residual health PCA.
 - Writes a benchmark CSV that compares every new run with V1 and the V2 targets.
 - Adds algorithmic regression tests in addition to structural checks.
@@ -105,6 +107,7 @@ The suite checks:
 - valid PUF metrics and the configured minimum bit count;
 - the identity-transform contract and exclusion of health variables;
 - synthetic extrapolation across an unseen removable condition shift.
+- leave-one-condition-out tuning and nuisance-subspace integrity.
 
 Passing these tests establishes implementation invariants. It does not replace the full benchmark or experimental validation.
 
@@ -126,7 +129,8 @@ Passing these tests establishes implementation invariants. It does not replace t
 - Conditions 9 and 10 are absent from enrollment and validation.
 - Repetitions 1–12 train, 13–16 validate, and 17–20 test for known conditions.
 - Standardization, nuisance regression, Fisher ranking, centroids, covariance, and PUF thresholds are fitted on enrollment data only.
-- Only feature count and covariance regularization use validation labels.
+- Feature count, covariance regularization, nuisance-subspace size, and PUF bit stability use validation labels.
+- Identity hyperparameters are scored on conditions excluded from the corresponding fold's enrollment rows.
 - Test and unseen-condition labels never influence fitting or tuning.
 - The identity nuisance model sees measurable operating variables only; it never sees stress, ageing, health state, or identity labels as predictors.
 

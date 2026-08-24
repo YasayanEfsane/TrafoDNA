@@ -60,6 +60,8 @@ metrics.normalizedMinEntropy = mean(perBitEntropy);
 metrics.numSelectedBits = sum(pufModel.selectedBits);
 metrics.testBits = bits;
 metrics.meanEnrollmentReliability = mean(pufModel.enrollmentReliability(:));
+metrics.meanValidationReliability = mean(pufModel.validationReliability(:));
+metrics.meanWorstConditionReliability = mean(pufModel.worstConditionReliability);
 end
 
 function values = localCandidateValues(embedding, firstIndex, secondIndex)
