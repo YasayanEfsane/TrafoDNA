@@ -26,6 +26,12 @@ The unchanged V1 baseline is preserved on `main`. The default-seed run reported:
 
 V2.1 still passed four of seven single-read gates. It improved PUF reliability and corrected the forced 48-bit response, while identity generalization remained effectively unchanged. Conditions 9–10 have now been observed repeatedly and are frozen as a development holdout. V2.2 preregisters untouched conditions 11–12 as the final holdout before their results are inspected. These targets remain engineering criteria, not experimental claims.
 
+### First V2.2 final-holdout result
+
+The first preregistered run passed **1 of 7** final-holdout gates. Single-read identity accuracy was 22.50%, EER was 0.4107, PUF reliability was 0.6973, and health accuracy was 90.38%. Three-read identity accuracy was 24.58%, EER was 0.3964, and PUF reliability was 0.7203.
+
+Conditions 11–12 are now observed and permanently frozen. They must not be described as untouched in any later experiment. The result does not support robust passive identity or PUF operation under the current arbitrary-condition protocol; it does support the health-classification feasibility result. See [docs/FINAL_HOLDOUT_RESULTS.md](docs/FINAL_HOLDOUT_RESULTS.md) for the locked record and interpretation.
+
 ## What V2.2 adds
 
 - Adds 12-bin phase-synchronous event and energy descriptors so the fixed microstructural phase pattern is not collapsed into two half-cycle values.
@@ -188,7 +194,7 @@ TrafoDNA/
 7. The reported V1 values came from one deterministic default configuration and should not be generalized beyond it.
 8. A three-read decision requires three independent acquisitions and must always be reported separately from single-read performance.
 
-See [MODEL.md](MODEL.md) for equations and [docs/BASELINE_ANALYSIS.md](docs/BASELINE_ANALYSIS.md) for the V1 diagnosis and V2 rationale.
+See [MODEL.md](MODEL.md) for equations, [docs/BASELINE_ANALYSIS.md](docs/BASELINE_ANALYSIS.md) for the V1/V2 rationale, and [docs/FINAL_HOLDOUT_RESULTS.md](docs/FINAL_HOLDOUT_RESULTS.md) for the first preregistered final result.
 
 ## Path to physical validation
 
