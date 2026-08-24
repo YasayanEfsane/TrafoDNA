@@ -1,8 +1,8 @@
-# TrafoDNA
+# TransformerDNA
 
 **Virtual magnetic fingerprinting of transformer cores from stochastic Barkhausen noise**
 
-TrafoDNA is a MATLAB-only numerical feasibility study for transformer-core identification, PUF-style fingerprinting, and health monitoring. It asks whether nominally identical transformer cores can retain distinguishable Barkhausen signatures under changing temperature, excitation, sensor, stress, and ageing conditions.
+TransformerDNA is a MATLAB-only numerical feasibility study for transformer-core identification, PUF-style fingerprinting, and health monitoring. It asks whether nominally identical transformer cores can retain distinguishable Barkhausen signatures under changing temperature, excitation, sensor, stress, and ageing conditions.
 
 > **Scientific boundary:** TrafoDNA contains no physical measurements or experimental validation. Its waveforms come from an interpretable but reduced stochastic model. Numerical separation in this repository is not evidence that real transformer cores will achieve the same performance.
 
