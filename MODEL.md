@@ -1,8 +1,8 @@
-# TransformerDNA Numerical Model
+# TrafoDNA Numerical Model
 
 ## 1. Scope
 
-TransformerDNA is a statistically and physically interpretable reduced model of Barkhausen activity in transformer cores. Its purpose is not a full micromagnetic solution. It provides a testable computational chain from excitation and latent microstructure to a high-frequency pickup voltage, identity representation, binary fingerprint, and health representation.
+TrafoDNA is a statistically and physically interpretable reduced model of Barkhausen activity in transformer cores. Its purpose is not a full micromagnetic solution. It provides a testable computational chain from excitation and latent microstructure to a high-frequency pickup voltage, identity representation, binary fingerprint, and health representation.
 
 The model separates four levels:
 

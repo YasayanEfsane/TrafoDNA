@@ -1,10 +1,10 @@
-# TransformerDNA
+# TrafoDNA
 
 **Virtual magnetic fingerprinting of transformer cores from stochastic Barkhausen noise**
 
-TransformerDNA is a MATLAB-only numerical feasibility study for transformer-core identification, PUF-style fingerprinting, and health monitoring. It asks whether nominally identical transformer cores can retain distinguishable Barkhausen signatures under changing temperature, excitation, sensor, stress, and ageing conditions.
+TrafoDNA is a MATLAB-only numerical feasibility study for transformer-core identification, PUF-style fingerprinting, and health monitoring. It asks whether nominally identical transformer cores can retain distinguishable Barkhausen signatures under changing temperature, excitation, sensor, stress, and ageing conditions.
 
-> **Scientific boundary:** TransformerDNA contains no physical measurements or experimental validation. Its waveforms come from an interpretable but reduced stochastic model. Numerical separation in this repository is not evidence that real transformer cores will achieve the same performance.
+> **Scientific boundary:** TrafoDNA contains no physical measurements or experimental validation. Its waveforms come from an interpretable but reduced stochastic model. Numerical separation in this repository is not evidence that real transformer cores will achieve the same performance.
 
 ## Research question
 
@@ -106,6 +106,72 @@ The audit compares the frozen greedy result with degree-aware, forced-start, see
 
 The first default audit completed exhaustively. All selector variants retained 26 bits, and the bounded exact search proved that the current 179-candidate correlation graph has no admissible 32-bit subset at the unchanged 0.80 limit. Development reliability remained 0.9471, uniqueness 0.5263, worst-scenario reliability 0.9248, and three-sweep reliability 0.9570. This closes selector-only optimization for the V3 representation; a later V3.1 study must construct a new enrollment-only bit representation and use a new final holdout.
 
+## Run the V3.2 representation diagnostic
+
+The next development step diagnoses why the 179 stable candidates collapse to a 26-node admissible set before a new bit construction is chosen. It uses enrollment and validation rows only and reports exact/complement pattern duplication, conflict components, effective rank, and embedding-axis reuse:
+
+```matlab
+addpath(genpath(pwd));
+run_v32_representation_diagnostic
+```
+
+The diagnostic does not tune a threshold, select replacement bits, or consume any final-holdout row. See [docs/V32_REPRESENTATION_DIAGNOSTIC.md](docs/V32_REPRESENTATION_DIAGNOSTIC.md) for outputs and interpretation rules.
+
+The first diagnostic run found 27 exact reference patterns and 26 canonical patterns after complement symmetry was removed. Those 26 patterns formed exactly 26 conflict components; one pattern was repeated 58 times. Entropy-effective rank was 5.561 for the PUF embedding medians, 3.890 for eligible continuous candidates, and 5.186 after binarization. This confirms that the unary/pairwise V3 candidate family repeatedly encoded the same population partitions.
+
+## Run the exploratory V3.2 projected-PUF study
+
+The next module replaces unary/pairwise candidate reuse with enrollment-only, within-core-variance-weighted projection directions. Validation applies the unchanged V3 stability, aliasing, and correlation gates, while known-test and unseen-development rows provide exploratory reporting:
+
+```matlab
+addpath(genpath(pwd));
+run_v32_projected_puf_development
+```
+
+Locked V3 final rows are excluded from every calculation. Reaching 32 bits in this study would justify preregistering a new protocol with a larger core population and a new final holdout; it would not itself be a new supported result. See [docs/V32_PROJECTED_PUF_DEVELOPMENT.md](docs/V32_PROJECTED_PUF_DEVELOPMENT.md).
+
+The exploratory run generated 8,553 deterministic projections, found 2,630
+eligible projected candidates and 407 unique canonical patterns, and retained
+64 mutually admissible bits. It passed all seven development checks without
+using locked final rows. This is the motivation for the new protocol below;
+it is not itself a final result.
+
+## Prepare the preregistered V3.2 study
+
+V3.2 freezes the projected representation and moves to a new seed, a new
+64-core virtual population, and mechanically generated scenarios 201–218.
+Preparation generates only known scenarios 201–208 and unseen-development
+scenarios 209–214. Final scenarios 215–218 remain ungenerated.
+
+```matlab
+addpath(genpath(pwd));
+run_tests
+preparedV32 = main_v32_prepare();
+```
+
+Stop after preparation and archive the output. Do not call `main_v32_final`
+until the preparation record has been reviewed. The final runner verifies the
+frozen protocol and model, requires an explicit token, and writes a one-time
+opening marker before it generates any final row. See
+[docs/V32_PREREGISTRATION.md](docs/V32_PREREGISTRATION.md) for the complete
+population, projection, partition, gate, and interpretation contract.
+
+### Build the locked V3.2 evidence report
+
+After the one-time final has been observed, create the read-only report and
+scientific figure package without reopening the simulator:
+
+```matlab
+addpath(genpath(pwd));
+run_tests
+v32FinalReport = run_v32_final_report();
+```
+
+The reporter verifies the prepared/final contract, reproduces all ten stored
+checks, validates the 2,304 final rows and scenarios 215–218, hashes the locked
+inputs, and writes Markdown, Word-readable HTML, CSV evidence tables, and seven
+PNG figures. See [docs/V32_FINAL_REPORTING.md](docs/V32_FINAL_REPORTING.md).
+
 ## Run a quick study
 
 ```matlab
@@ -161,6 +227,8 @@ The suite checks:
 - common-gain cancellation in differential challenge coordinates;
 - active partition integrity and complete V3 identity/PUF/final-gate paths.
 - V3.1 capacity reconstruction, final-row exclusion, and independent-set validity.
+- V3.2 pattern/rank diagnostic reconstruction and excluded-row audit.
+- V3.2 projected-bit determinism, encoder compatibility, and final-row exclusion.
 
 Passing these tests establishes implementation invariants. It does not replace the full benchmark or experimental validation.
 
@@ -225,6 +293,8 @@ TrafoDNA/
 ├── main.m
 ├── main_active.m
 ├── run_v31_capacity.m
+├── run_v32_representation_diagnostic.m
+├── run_v32_projected_puf_development.m
 ├── run_tests.m
 ├── README.md
 ├── MODEL.md

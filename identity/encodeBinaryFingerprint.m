@@ -11,13 +11,19 @@ else
     embedding = standardizeFeatures(features,pufModel.featureMean, ...
         pufModel.featureStd,pufModel.activeFeatures);
 end
-firstIndex = pufModel.candidateFirstIndex(pufModel.selectedBits);
-secondIndex = pufModel.candidateSecondIndex(pufModel.selectedBits);
-selectedValues = embedding(:,firstIndex);
-paired = secondIndex > 0;
-if any(paired)
-    selectedValues(:,paired) = selectedValues(:,paired)- ...
-        embedding(:,secondIndex(paired));
+if isfield(pufModel,'candidateMode') && ...
+        strcmp(pufModel.candidateMode,'linear_projection')
+    selectedValues = embedding* ...
+        pufModel.projectionMatrix(:,pufModel.selectedBits);
+else
+    firstIndex = pufModel.candidateFirstIndex(pufModel.selectedBits);
+    secondIndex = pufModel.candidateSecondIndex(pufModel.selectedBits);
+    selectedValues = embedding(:,firstIndex);
+    paired = secondIndex > 0;
+    if any(paired)
+        selectedValues(:,paired) = selectedValues(:,paired)- ...
+            embedding(:,secondIndex(paired));
+    end
 end
 selectedThresholds = pufModel.thresholds(pufModel.selectedBits);
 bits = selectedValues > selectedThresholds;

@@ -34,8 +34,8 @@ for coreIndex = 1:coreCount
             row = row+1;
             for challengeIndex = 1:challengeCount
                 challenge = cfg.active.challenges(challengeIndex);
-                seed = cfg.rngSeed+coreIndex*1.0e7+scenarioIndex*1.0e5+ ...
-                    repetition*1000+challenge.id;
+                seed = activeAcquisitionSeed(cfg,coreIndex,scenario, ...
+                    scenarioIndex,repetition,challenge.id);
                 [response,currentNames,currentPositiveMask] = ...
                     simulateChallengeResponse(cores(coreIndex),scenario, ...
                     challenge,cfg,seed);
@@ -63,8 +63,8 @@ for coreIndex = 1:coreCount
             healthState{row} = scenario.healthState;
             isUnseen(row) = scenario.isUnseen;
             isFinal(row) = scenario.isFinalHoldout;
-            sessionSeed(row) = cfg.rngSeed+coreIndex*1.0e7+ ...
-                scenarioIndex*1.0e5+repetition*1000;
+            sessionSeed(row) = activeAcquisitionSeed(cfg,coreIndex,scenario, ...
+                scenarioIndex,repetition,0);
         end
     end
     if cfg.runtime.verbose

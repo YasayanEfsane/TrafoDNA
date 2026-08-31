@@ -15,7 +15,18 @@ results_active_v3/*.csv
 results_active_v3/figures/
 results_v31/*.mat
 results_v31/*.csv
+results_v32/*.mat
+results_v32/*.csv
+results_v32_projected/*.mat
+results_v32_projected/*.csv
+results_v32_preregistered/*.mat
+results_v32_preregistered/*.csv
+results_v32_preregistered/development/
+results_v32_preregistered/final/
+results_v32_preregistered/figures/
+results_v32_preregistered/report/
 
 # Operating-system metadata
 .DS_Store
 Thumbs.db
+*.zip 
