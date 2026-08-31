@@ -1,0 +1,11 @@
+Criterion,Requirement,WorstObserved,Result
+Single-sweep identity accuracy,>= 0.60,0.996094,PASS
+Single-sweep identity EER,<= 0.20,0.026148,PASS
+Raw projected-PUF reliability,>= 0.90,0.960714,PASS
+Projected-PUF uniqueness,0.45–0.55,0.507937–0.507937,PASS
+Strictly eligible projected bits,>= 32,64,PASS
+Worst-final-scenario PUF reliability,>= 0.85,0.952664,PASS
+Three-sweep identity accuracy,>= 0.70,0.996094,PASS
+Three-sweep identity EER,<= 0.15,0.019748,PASS
+Three-sweep PUF reliability,>= 0.93,0.967428,PASS
+Maximum selected-bit correlation,<= 0.80,0.750000,PASS

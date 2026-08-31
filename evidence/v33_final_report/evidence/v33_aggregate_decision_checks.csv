@@ -1,0 +1,3 @@
+Metric,Current,Target,Passed
+Passing cohorts,5,>= 4,1
+Passing-cohort rate,1,>= 0.80,1

@@ -1,0 +1,7 @@
+TrafoDNA V3.3 Preparation Freeze
+Date: 20260831T144917
+Cohorts prepared: 5/5
+Development gates passed: 5/5
+Final rows generated / used: 0 / 0
+Prepared bundle SHA-256: 6d4a477b8a7aad13cd38e8ce6d2be3e3b519fe169703110a719e66b82e0ba9f4
+Source package SHA-256: f4f3ad6ad07c5c1860a26cd8ed241042127dd420da7da0b7e5357ab1715aaba5

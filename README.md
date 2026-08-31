@@ -196,6 +196,24 @@ single joint final audit. See
 [`docs/V33_PREREGISTRATION.md`](docs/V33_PREREGISTRATION.md) for the frozen
 seeds, scenarios, ten cohort gates, 4/5 decision rule, and interruption policy.
 
+## V3.3 locked final outcome
+
+The single joint V3.3 final audit evaluated all five frozen cohorts and all
+11,520 preregistered final rows. Every cohort passed all ten gates, so the
+aggregate result was 5/5 against the frozen requirement of 4/5. The
+preregistered V3.3 numerical-robustness hypothesis is therefore **SUPPORTED**.
+
+The read-only evidence package is stored under
+[`evidence/v33_final_report/`](evidence/v33_final_report/). It contains the
+locked outcome in Markdown and Word-readable HTML, seven threshold-aware
+figures, the small frozen CSV and lock records, a SHA-256 manifest, and a PR
+description. Raw preparation and final MAT archives are referenced by their
+frozen hashes rather than duplicated in the repository.
+
+This result strengthens simulator-level evidence across independently seeded
+virtual populations. It remains neither physical transformer validation nor
+proof of independent entropy or deployable cryptographic security.
+
 ## Run a quick study
 
 ```matlab
