@@ -1,7 +1,7 @@
 # TrafoDNA V3.2 preregistered projected-PUF protocol
 
-**Protocol version:** `3.2.0-preregistered`  
-**Freeze date:** 31 August 2026  
+**Protocol version:** `3.2.0-preregistered`
+**Freeze date:** 31 August 2026
 **Status at freeze:** development may be generated; final scenarios are
 defined but unopened.
 
@@ -95,8 +95,10 @@ below are applied.
 ## Final acceptance rule
 
 After a passing preparation bundle has been reviewed and archived,
-`main_v32_final` may be called once with the literal confirmation token
-stored in `defaultV32Config`. It verifies the complete result-relevant
+`main_v32_final` may be called once with a locally configured confirmation
+token. The public source reads this workflow secret from
+`TRAFODNA_V32_FINAL_TOKEN`; it is not part of the scientific contract. The
+runner verifies the complete result-relevant
 protocol contract, writes `V32_FINAL_OPENED.lock`, and only then generates
 conditions 215–218. A failed or interrupted opening remains an observed
 opening and must not be silently rerun.

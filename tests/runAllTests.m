@@ -485,8 +485,9 @@ confirmationRejected = false;
 try
     main_v32_final('INVALID_TOKEN');
 catch exception
-    confirmationRejected = strcmp(exception.identifier, ...
-        'TrafoDNA:V32FinalConfirmationRequired');
+    confirmationRejected = ismember(exception.identifier, ...
+        {'TrafoDNA:V32FinalConfirmationRequired'; ...
+        'TrafoDNA:V32FinalTokenNotConfigured'});
 end
 assert(confirmationRejected, ...
     'V3.2 final runner did not enforce the explicit confirmation token.');
@@ -580,6 +581,124 @@ assert(numel(hashA) == 64 && strcmp(hashA,hashB), ...
 [testNames,passed] = localRecord(testNames,passed, ...
     'v32_locked_final_reporting');
 
+% 25. V3.3 freezes five distinct populations, nonoverlapping scenario
+% blocks, and an aggregate decision contract before any final is generated.
+v33Cfg = defaultV33Config();
+v33Contract = buildV33ProtocolContract(v33Cfg);
+assert(v33Cfg.v33.numCohorts == 5 && ...
+    isequal(v33Cfg.v33.cohortSeeds,20260901:20260905) && ...
+    isequal(v33Cfg.v33.scenarioHaltonStartIndices,59+18*(0:4)) && ...
+    isequal(v33Cfg.v33.scenarioIdBases,300:100:700), ...
+    'V3.3 population seeds or scenario blocks changed after freeze.');
+assert(v33Cfg.v33.requiredPassingCohorts == 4 && ...
+    v33Cfg.v33.requiredPassRate == 0.80 && ...
+    v33Cfg.v33.evaluateEveryFinalCohort && ...
+    ~isfield(v33Contract,'finalConfirmationToken'), ...
+    'V3.3 aggregate rule or public-token boundary changed.');
+allScenarioIds = zeros(1,0);
+allHaltonIndices = zeros(1,0);
+firstCohortCore = [];
+for cohortIndex = 1:v33Cfg.v33.numCohorts
+    cohortCfg = buildV33CohortConfig(v33Cfg,cohortIndex);
+    expectedIds = v33Cfg.v33.scenarioIdBases(cohortIndex)+(1:18);
+    assert(isequal([cohortCfg.dataset.conditions.id],expectedIds) && ...
+        isequal(cohortCfg.dataset.unseenConditionIds,expectedIds(9:14)) && ...
+        isequal(cohortCfg.dataset.finalHoldoutConditionIds, ...
+        expectedIds(15:18)), ...
+        'A V3.3 cohort has incorrect scenario IDs or stage boundaries.');
+    assert(isequal([cohortCfg.dataset.conditions.isUnseen], ...
+        [false(1,8) true(1,6) false(1,4)]) && ...
+        isequal([cohortCfg.dataset.conditions.isFinalHoldout], ...
+        [false(1,14) true(1,4)]), ...
+        'A V3.3 cohort has invalid development/final flags.');
+    allScenarioIds = [allScenarioIds expectedIds]; %#ok<AGROW>
+    allHaltonIndices = [allHaltonIndices ...
+        cohortCfg.v33.currentHaltonIndices]; %#ok<AGROW>
+    currentCore = createActiveCore(1,cohortCfg);
+    if cohortIndex == 1
+        firstCohortCore = currentCore;
+    elseif cohortIndex == 2
+        assert(norm(firstCohortCore.pinningSites.thresholdAm- ...
+            currentCore.pinningSites.thresholdAm) > 1e-6, ...
+            'Different V3.3 population seeds reproduced the same core.');
+    end
+end
+assert(numel(unique(allScenarioIds)) == 90 && ...
+    isequal(sort(allHaltonIndices),59:148) && ...
+    isempty(intersect(allScenarioIds,[115:118 215:218])), ...
+    'V3.3 scenario blocks overlap each other or an observed final.');
+changedV33Cfg = v33Cfg;
+changedV33Cfg.sensor.baseNoiseStdV = ...
+    changedV33Cfg.sensor.baseNoiseStdV*1.01;
+assert(~isequaln(v33Contract,buildV33ProtocolContract(changedV33Cfg)), ...
+    'V3.3 protocol contract ignored a result-relevant sensor change.');
+[testNames,passed] = localRecord(testNames,passed, ...
+    'v33_independent_cohort_contract');
+
+% 26. A miniature V3.3 cohort executes development-only fitting and a
+% separate final stage while preserving exact row and partition contracts.
+miniV33Cfg = localSmallV33Config(v33Cfg);
+miniCohortCfg = buildV33CohortConfig(miniV33Cfg,1);
+miniPreparedV33 = prepareV33Cohort(miniCohortCfg);
+assert(miniPreparedV33.integrity.developmentRowsGenerated == 48 && ...
+    miniPreparedV33.integrity.finalRowsGenerated == 0 && ...
+    miniPreparedV33.integrity.finalRowsUsed == 0 && ...
+    miniPreparedV33.pufModel.numSelectedEligibleBits >= 2, ...
+    'Miniature V3.3 preparation violated its sealed-stage contract.');
+miniFinalV33 = evaluateV33CohortFinal(miniPreparedV33,miniCohortCfg);
+assert(miniFinalV33.integrity.finalRowsGenerated == 16 && ...
+    miniFinalV33.integrity.finalRowsUsed == 16 && ...
+    isequal(miniFinalV33.integrity.finalConditionIds,904) && ...
+    miniFinalV33.integrity.preparationFinalRowsUsed == 0 && ...
+    height(miniFinalV33.checks) == 10 && ...
+    all(isfinite(miniFinalV33.checks.Current)), ...
+    'Miniature V3.3 final evaluation violated its row or gate contract.');
+[testNames,passed] = localRecord(testNames,passed, ...
+    'v33_miniature_sealed_stage_paths');
+
+% 27. The aggregate rule accepts exactly four passing cohorts, rejects
+% three, and the public final runner remains locally token-guarded.
+syntheticCohorts = cell(1,v33Cfg.v33.numCohorts);
+for cohortIndex = 1:v33Cfg.v33.numCohorts
+    syntheticCohorts{cohortIndex} = miniFinalV33;
+    syntheticCohorts{cohortIndex}.index = cohortIndex;
+    syntheticCohorts{cohortIndex}.seed = ...
+        v33Cfg.v33.cohortSeeds(cohortIndex);
+    finalIdBase = v33Cfg.v33.scenarioIdBases(cohortIndex);
+    syntheticCohorts{cohortIndex}.integrity.finalConditionIds = ...
+        finalIdBase+(15:18);
+    syntheticCohorts{cohortIndex}.checks.Passed(:) = true;
+    syntheticCohorts{cohortIndex}.cohortPassed = true;
+end
+syntheticCohorts{5}.checks.Passed(1) = false;
+syntheticCohorts{5}.cohortPassed = false;
+fourOfFive = summarizeV33FinalAudit(syntheticCohorts,v33Cfg);
+assert(fourOfFive.passCount == 4 && fourOfFive.hypothesisSupported, ...
+    'The V3.3 rule rejected its preregistered 4/5 boundary.');
+syntheticCohorts{4}.checks.Passed(1) = false;
+syntheticCohorts{4}.cohortPassed = false;
+threeOfFive = summarizeV33FinalAudit(syntheticCohorts,v33Cfg);
+assert(threeOfFive.passCount == 3 && ...
+    ~threeOfFive.hypothesisSupported, ...
+    'The V3.3 rule accepted only three passing cohorts.');
+configuredToken = getenv('TRAFODNA_V33_FINAL_TOKEN');
+invalidToken = '__INVALID_V33_FINAL_TOKEN__';
+if strcmp(configuredToken,invalidToken)
+    invalidToken = [invalidToken '_2'];
+end
+v33GuardRejected = false;
+try
+    main_v33_final_audit(invalidToken);
+catch exception
+    v33GuardRejected = ismember(exception.identifier, ...
+        {'TrafoDNA:V33FinalConfirmationRequired'; ...
+        'TrafoDNA:V33FinalTokenNotConfigured'});
+end
+assert(v33GuardRejected, ...
+    'V3.3 final runner did not enforce its local confirmation token.');
+[testNames,passed] = localRecord(testNames,passed, ...
+    'v33_aggregate_rule_and_final_guard');
+
 results.names = testNames(:);
 results.passed = logical(passed(:));
 fprintf('All %d TrafoDNA tests passed.\n',numel(testNames));
@@ -655,6 +774,84 @@ cfg.puf.allowFallbackToMinimum = true;
 cfg.puf.transformFeatureCount = 24;
 cfg.puf.transformNuisanceComponents = 4;
 cfg.puf.transformCovarianceRegularization = 0.25;
+cfg.runtime.verbose = false;
+cfg.runtime.createFigures = false;
+cfg.runtime.saveMatFile = false;
+cfg.runtime.saveCsvFile = false;
+end
+
+function cfg = localSmallV33Config(cfg)
+cfg.v33.numCohorts = 1;
+cfg.v33.cohortSeeds = 97541;
+cfg.v33.knownScenarioCount = 2;
+cfg.v33.developmentScenarioCount = 1;
+cfg.v33.finalScenarioCount = 1;
+cfg.v33.scenariosPerCohort = 4;
+cfg.v33.scenarioHaltonStartIndices = 149;
+cfg.v33.scenarioIdBases = 900;
+cfg.v33.requiredPassingCohorts = 1;
+cfg.v33.requiredPassRate = 1;
+cfg.v33.evaluateEveryFinalCohort = true;
+cfg.dataset.numCores = 4;
+cfg.dataset.numConditions = 4;
+cfg.dataset.repetitions = 4;
+cfg.dataset.trainRepeats = 1:2;
+cfg.dataset.validationRepeats = 3;
+cfg.dataset.testRepeats = 4;
+cfg.dataset.conditions = struct([]);
+cfg.dataset.unseenConditionIds = zeros(1,0);
+cfg.dataset.finalHoldoutConditionIds = zeros(1,0);
+cfg.dataset.seedByConditionId = true;
+
+referencePosition = find([cfg.active.challenges.id] == ...
+    cfg.active.referenceChallengeId,1);
+selected = unique([1:min(5,numel(cfg.active.challenges)) ...
+    referencePosition],'stable');
+candidate = numel(cfg.active.challenges);
+while numel(selected) < 6
+    if ~any(selected == candidate)
+        selected(end+1) = candidate; %#ok<AGROW>
+    end
+    candidate = candidate-1;
+end
+cfg.active.challenges = cfg.active.challenges(selected);
+cfg.active.siteCount = 64;
+cfg.active.cyclesPerChallenge = 2;
+cfg.identity.useSVMWhenAvailable = false;
+cfg.identity.featureCountGrid = 24;
+cfg.identity.maxFeatures = 24;
+cfg.identity.covarianceRegularizationGrid = 0.25;
+cfg.identity.covarianceRegularization = 0.25;
+cfg.identity.nuisanceComponentGrid = 0;
+cfg.identity.nuisanceComponents = 0;
+cfg.puf.minimumBitReliability = 0;
+cfg.puf.minimumValidationReliability = 0;
+cfg.puf.minimumWorstConditionReliability = 0;
+cfg.puf.minimumSelectedBits = 2;
+cfg.puf.maximumSelectedBits = 3;
+cfg.puf.maximumReferenceCorrelation = 1;
+cfg.puf.bitAliasRange = [0 1];
+cfg.puf.allowFallbackToMinimum = false;
+cfg.puf.transformFeatureCount = 24;
+cfg.puf.transformNuisanceComponents = 4;
+cfg.puf.transformCovarianceRegularization = 0.25;
+cfg.v32.projection.randomProjectionCount = 128;
+cfg.v32.projection.subspaceDimensions = 3;
+cfg.v32.projection.withinVarianceRegularization = 0.25;
+cfg.v32.projection.energyWeightExponent = 0.50;
+cfg.v32.projection.randomSeed = 97531;
+cfg.v32.projection.targetBits = 2;
+cfg.v32.projection.maximumBits = 3;
+cfg.benchmark.v32Targets.identityAccuracy = 0;
+cfg.benchmark.v32Targets.maximumEER = 1;
+cfg.benchmark.v32Targets.pufReliability = 0;
+cfg.benchmark.v32Targets.pufUniquenessRange = [0 1];
+cfg.benchmark.v32Targets.minimumEligibleBits = 2;
+cfg.benchmark.v32Targets.worstConditionPUFReliability = 0;
+cfg.benchmark.v32Targets.sessionIdentityAccuracy = 0;
+cfg.benchmark.v32Targets.maximumSessionEER = 1;
+cfg.benchmark.v32Targets.sessionPUFReliability = 0;
+cfg.benchmark.v32Targets.maximumReferenceCorrelation = 1;
 cfg.runtime.verbose = false;
 cfg.runtime.createFigures = false;
 cfg.runtime.saveMatFile = false;

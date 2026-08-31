@@ -24,5 +24,4 @@ contract.puf = cfg.puf;
 contract.session = cfg.session;
 contract.projection = cfg.v32.projection;
 contract.targets = cfg.benchmark.v32Targets;
-contract.finalConfirmationToken = cfg.v32.finalConfirmationToken;
 end

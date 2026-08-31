@@ -171,6 +171,30 @@ The reporter verifies the prepared/final contract, reproduces all ten stored
 checks, validates the 2,304 final rows and scenarios 215–218, hashes the locked
 inputs, and writes Markdown, Word-readable HTML, CSV evidence tables, and seven
 PNG figures. See [docs/V32_FINAL_REPORTING.md](docs/V32_FINAL_REPORTING.md).
+The archived output package is available under
+[`evidence/v32_final_report/`](evidence/v32_final_report/); it records the
+locked numerical result without changing the simulation or final rows.
+
+## Prepare the preregistered V3.3 robustness audit
+
+V3.2 passed 10/10 gates on one new 64-core population. V3.3 keeps its method
+and thresholds fixed, then prepares five independently seeded 64-core
+populations with disjoint scenario blocks. All five models are frozen before
+any final row can be generated; the preregistered aggregate target is at least
+four fully passing cohorts out of five.
+
+```matlab
+addpath(genpath(pwd));
+run_tests
+preparedV33 = main_v33_prepare();
+```
+
+Preparation is checkpointed after each cohort and can be resumed by running
+the same command again. Stop after it reports five prepared cohorts and zero
+final rows. Archive and review the prepared bundle before considering the
+single joint final audit. See
+[`docs/V33_PREREGISTRATION.md`](docs/V33_PREREGISTRATION.md) for the frozen
+seeds, scenarios, ten cohort gates, 4/5 decision rule, and interruption policy.
 
 ## Run a quick study
 
@@ -229,6 +253,9 @@ The suite checks:
 - V3.1 capacity reconstruction, final-row exclusion, and independent-set validity.
 - V3.2 pattern/rank diagnostic reconstruction and excluded-row audit.
 - V3.2 projected-bit determinism, encoder compatibility, and final-row exclusion.
+- V3.3 population/scenario independence and frozen aggregate contract.
+- V3.3 miniature development/final stage separation and exact row counts.
+- V3.3 4/5 decision boundary and local final-opening guard.
 
 Passing these tests establishes implementation invariants. It does not replace the full benchmark or experimental validation.
 

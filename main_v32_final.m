@@ -7,6 +7,11 @@ function finalV32 = main_v32_final(confirmationToken,preparedBundleFile)
 projectRoot = fileparts(mfilename('fullpath'));
 addpath(genpath(projectRoot));
 cfg = defaultV32Config();
+if isempty(cfg.v32.finalConfirmationToken)
+    error('TrafoDNA:V32FinalTokenNotConfigured', ...
+        ['Set the local TRAFODNA_V32_FINAL_TOKEN environment variable ' ...
+        'before authorising a sealed V3.2 final evaluation.']);
+end
 if nargin < 1 || ~strcmp(char(confirmationToken), ...
         cfg.v32.finalConfirmationToken)
     error('TrafoDNA:V32FinalConfirmationRequired', ...
@@ -121,7 +126,7 @@ if ~isfield(prepared.development,'readyForFinal') || ...
         'All ten frozen development-readiness gates must pass first.');
 end
 currentContract = buildV32ProtocolContract(cfg);
-if ~isequaln(prepared.contract,currentContract)
+if ~v32ProtocolContractsEquivalent(prepared.contract,currentContract)
     error('TrafoDNA:V32ProtocolContractChanged', ...
         'Current V3.2 code/config differs from the prepared contract.');
 end

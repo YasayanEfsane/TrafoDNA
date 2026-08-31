@@ -25,7 +25,8 @@ if ~isfield(loadedPreparation,'preparedV32') || ...
 end
 preparedV32 = loadedPreparation.preparedV32;
 finalV32 = loadedFinal.finalV32;
-if ~isequaln(preparedV32.contract,buildV32ProtocolContract(cfg))
+if ~v32ProtocolContractsEquivalent(preparedV32.contract, ...
+        buildV32ProtocolContract(cfg))
     error('TrafoDNA:V32ReportContractChanged', ...
         'Current result-relevant protocol differs from the prepared bundle.');
 end

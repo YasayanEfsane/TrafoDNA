@@ -45,7 +45,10 @@ cfg.benchmark.v32Targets.maximumSessionEER = 0.15;
 cfg.benchmark.v32Targets.sessionPUFReliability = 0.93;
 cfg.benchmark.v32Targets.maximumReferenceCorrelation = 0.80;
 
-cfg.v32.finalConfirmationToken = 'RUN_LOCKED_V32_FINAL_ONCE';
+% The one-time final-opening token is intentionally not stored in the
+% public source tree. Set TRAFODNA_V32_FINAL_TOKEN locally only when a
+% sealed final is authorised for execution.
+cfg.v32.finalConfirmationToken = getenv('TRAFODNA_V32_FINAL_TOKEN');
 cfg.runtime.resultsDirectory = fullfile(cfg.projectRoot, ...
     'results_v32_preregistered');
 cfg.runtime.developmentDirectory = fullfile(cfg.runtime.resultsDirectory, ...
